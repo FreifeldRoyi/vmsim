@@ -85,11 +85,15 @@ errcode_t disk_alloc_process_block(disk_t* disk, int* page)
 {
 	int pageidx;
 
+	//find the first clear page. since all pages are the same size, this
+	// should also be the first available block of pages of the proper size...
 	if (bitmap_first_clear(&disk->alloc_bitmap, page) != ecSuccess)
 	{
 		return ecFail;
 	}
 
+	//...unless npages is not a multiple of process_block_size, in which case
+	// we may be left with some extra pages that are not enough for a whole block.
 	if (!hasEnoughConsecutivePages(disk, *page, disk->process_block_size))
 	{
 		return ecFail;
