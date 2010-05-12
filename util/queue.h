@@ -28,6 +28,9 @@ void* queue_pop(struct _queue_t* item);
  */
 int queue_push(struct _queue_t* queue, void* item);
 
+typedef void (*element_func_t) (void*);
+void queue_for_each(struct _queue_t* queue, element_func_t func);
+
 /**
  * Returns the number of items in the queue
  *

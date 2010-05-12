@@ -154,6 +154,17 @@ int queue_push(queue_t* queue, void* item)
 	return toReturn;
 }
 
+void queue_for_each(struct _queue_t* queue, element_func_t func)
+{
+	node_t *cur_node = QUEUE_HEAD(queue);
+
+	while (cur_node != NULL)
+	{
+		func(NODE_DATA(cur_node));
+		cur_node = NODE_NEXT(cur_node);
+	}
+}
+
 int queue_size(queue_t* item)
 {
 	return QUEUE_SIZE(item);
