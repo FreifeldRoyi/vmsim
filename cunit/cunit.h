@@ -1,12 +1,7 @@
-/*
- * cunit.h
- *
- *  Created on: 12/05/2010
- *      Author: tom
- */
-
 #ifndef CUNIT_H_
 #define CUNIT_H_
+
+#include <stdio.h>
 
 typedef enum {ceSuccess, ceFail} cunit_err_t;
 

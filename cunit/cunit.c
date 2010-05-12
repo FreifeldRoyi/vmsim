@@ -33,7 +33,7 @@ cunit_err_t cunit_add_test(cunit_test_t test, const char* name)
 
 	test_rec->test = test;
 	test_rec->name = name;
-	test_rec->idx = queue_size(g_suite.tests);
+	test_rec->idx = queue_size(g_suite.tests)+1;
 
 	queue_push(g_suite.tests, test_rec);
 
