@@ -14,7 +14,7 @@
 
 errcode_t bitmap_init(bitmap_t* bitmap, int nbits)
 {
-	bitmap->data = calloc(1, nbits/BLOCK_SIZE);
+	bitmap->data = calloc(1, ((nbits-1)/BLOCK_SIZE)+1);
 	if (bitmap->data == NULL)
 	{
 		return ecFail;
@@ -31,7 +31,7 @@ find_first(bitmap_t* bitmap, BOOL value, bitmap_block_t skip_block)
 		maxbitidx;
 	bitmap_block_t block;
 
-	//first find the first non-zero block
+	//first find the first non-skippable block
 	while ( (bitmap->data[blockidx] == skip_block) &&
 			(blockidx <= BLOCK_IDX(bitmap->size)))
 	{
@@ -44,7 +44,7 @@ find_first(bitmap_t* bitmap, BOOL value, bitmap_block_t skip_block)
 
 	maxbitidx = bitmap->size - blockidx * BLOCK_SIZE;
 
-	//now find the first non-zero bit.
+	//now find the first relevant bit.
 	while ((bitidx < BLOCK_SIZE) && (bitidx < maxbitidx))
 	{
 		if (GET_BIT(block, bitidx) == value)
@@ -103,7 +103,8 @@ BOOL bitmap_get(bitmap_t* bitmap, int idx)
 
 void bitmap_destroy(bitmap_t* bitmap)
 {
-
+	free(bitmap->data);
+	bitmap->data = NULL;
 }
 
 

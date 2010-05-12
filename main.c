@@ -3,6 +3,10 @@
 int main()
 {
 	add_queue_tests();
+	add_bitmap_tests();
+	add_disk_tests();
 
-	return cunit_run_suite();;
+	cunit_run_suite();
+	cunit_destroy();
+	return 0;
 }
