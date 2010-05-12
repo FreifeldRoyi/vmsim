@@ -75,3 +75,12 @@ cunit_err_t cunit_run_suite()
 	printf("Passed: %d/%d\n", g_suite.passed, g_suite.passed + g_suite.failed);
 	return ceSuccess;
 }
+
+void cunit_destroy()
+{
+	while (queue_size(g_suite.tests) > 0)
+	{
+		free( queue_pop(g_suite.tests));
+	}
+	queue_destroy(g_suite.tests);
+}

@@ -13,5 +13,6 @@ typedef cunit_err_t (*cunit_test_t)();
 #define ADD_TEST(_testfunc) cunit_add_test(_testfunc, #_testfunc)
 cunit_err_t cunit_add_test(cunit_test_t test, const char* name);
 cunit_err_t cunit_run_suite();
+void cunit_destroy();
 
 #endif /* CUNIT_H_ */
