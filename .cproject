@@ -45,6 +45,9 @@
 </tool>
 </toolChain>
 </folderInfo>
+<sourceEntries>
+<entry excluding="tests/queue_tests.c" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
+</sourceEntries>
 </configuration>
 </storageModule>
 <storageModule moduleId="scannerConfiguration">
@@ -180,6 +183,9 @@
 <tool id="cdt.managedbuild.tool.gnu.cross.cpp.linker.294469010" name="Cross G++ Linker" superClass="cdt.managedbuild.tool.gnu.cross.cpp.linker"/>
 </toolChain>
 </folderInfo>
+<sourceEntries>
+<entry excluding="tests/queue_tests.c" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
+</sourceEntries>
 </configuration>
 </storageModule>
 <storageModule moduleId="scannerConfiguration">

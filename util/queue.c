@@ -182,3 +182,5 @@ int queue_destroy(queue_t* dest)
 
 	return toReturn;
 }
+
+#include "tests/queue_tests.c"
