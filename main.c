@@ -1,11 +1,19 @@
-/*
- * main.c
- *
- *  Created on: 12/05/2010
- *      Author: tom
- */
+#include "cunit/cunit.h"
+
+cunit_err_t passing_test()
+{
+	return ceSuccess;
+}
+
+cunit_err_t failing_test()
+{
+	return ceFail;
+}
 
 int main()
 {
-	return 0;
+	ADD_TEST(passing_test);
+	ADD_TEST(failing_test);
+
+	return cunit_run_suite();;
 }
