@@ -87,6 +87,31 @@ BOOL ipt_has_translation(ipt_t* ipt, virt_addr_t addr)
 	return TRUE;
 }
 
+BOOL ipt_is_dirty(ipt_t* ipt, virt_addr_t addr)
+{
+	assert (ipt_has_translation(ipt, addr));
+	return ipt->entries[get_vaddr_idx(ipt, addr)].dirty;
+}
+
+BOOL ipt_is_referenced(ipt_t* ipt, virt_addr_t addr)
+{
+	assert (ipt_has_translation(ipt, addr));
+	return ipt->entries[get_vaddr_idx(ipt, addr)].referenced;
+}
+
+errcode_t ipt_reference(ipt_t* ipt, virt_addr_t addr, ipt_ref_t reftype)
+{
+	assert (ipt_has_translation(ipt, addr));
+
+	ipt->entries[get_vaddr_idx(ipt, addr)].referenced = TRUE;
+	if (reftype == refWrite)
+	{
+		ipt->entries[get_vaddr_idx(ipt, addr)].dirty = TRUE;
+	}
+
+	return ecSuccess;
+}
+
 errcode_t ipt_translate(ipt_t* ipt, virt_addr_t addr, phys_addr_t* paddr)
 {
 	if (!ipt_has_translation(ipt, addr))
