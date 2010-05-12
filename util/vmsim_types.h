@@ -17,6 +17,8 @@ typedef struct
 	unsigned page;
 }virt_addr_t; //virtual(logical) address
 
+#define VIRT_ADDR_EQ(_v1, _v2) (((_v1).pid == (_v2).pid) && ((_v1).page == (_v2).page))
+
 typedef struct
 {
 	unsigned page;

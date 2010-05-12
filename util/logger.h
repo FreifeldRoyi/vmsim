@@ -1,9 +1,10 @@
 #ifndef LOGGER_H_
 #define LOGGER_H_
 
-typedef enum {lvInfo, lvError} log_level_t;
+typedef enum {lvDebug, lvInfo, lvError} log_level_t;
 
 #define LOG(_lvl, _msg) log_write(__FILE__, __LINE__, __func__, _lvl, _msg)
+#define DEBUG(_msg) LOG(lvDebug, _msg)
 #define INFO(_msg) LOG(lvInfo, _msg)
 #define ERROR(_msg) LOG(lvError, _msg)
 
