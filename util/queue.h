@@ -1,12 +1,7 @@
-/*
- * queue.h
- *
- *  Created on: 12/05/2010
- *      Author: tom
- */
-
 #ifndef QUEUE_H_
 #define QUEUE_H_
+
+#include "list.h"
 
 struct _queue_t;
 
@@ -28,7 +23,6 @@ void* queue_pop(struct _queue_t* item);
  */
 int queue_push(struct _queue_t* queue, void* item);
 
-typedef void (*element_func_t) (void*);
 void queue_for_each(struct _queue_t* queue, element_func_t func);
 
 /**
