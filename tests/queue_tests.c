@@ -8,7 +8,7 @@ typedef struct{
 	int value;
 }test_data_t;
 
-cunit_err_t test_creation()
+cunit_err_t test_queue_creation()
 {
 	queue_t* t_qu = queue_init();
 
@@ -20,7 +20,7 @@ cunit_err_t test_creation()
 	return ceSuccess;
 }
 
-cunit_err_t test_queue_pop()
+cunit_err_t test_queue_push_pop()
 {
 	queue_t* t_qu = queue_init();
 	node_t* t_nd1 = node_init();
@@ -114,6 +114,6 @@ void add_queue_tests ()
 {
 	ADD_TEST(test_node_creation);
 	ADD_TEST(test_node_delete);
-	ADD_TEST(test_creation);
-	ADD_TEST(test_queue_pop);
+	ADD_TEST(test_queue_creation);
+	ADD_TEST(test_queue_push_pop);
 }
