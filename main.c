@@ -6,6 +6,7 @@ int main()
 	add_bitmap_tests();
 	add_disk_tests();
 	add_ipt_tests();
+	add_worker_thread_tests();
 
 	cunit_run_suite();
 	cunit_destroy();
