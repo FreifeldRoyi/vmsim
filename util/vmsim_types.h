@@ -1,6 +1,8 @@
 #ifndef VMSIM_TYPES_H_
 #define VMSIM_TYPES_H_
 
+#define POSIX_ERRCODE(_retcode) (((_retcode) == 0)?ecSuccess:ecFail)
+
 #define TRUE 1
 #define FALSE 0
 typedef int BOOL;
