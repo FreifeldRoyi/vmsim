@@ -3,9 +3,10 @@
 
 static const int THREAD_COUNT=10;
 
-void worker_thread_counter_func(void* arg)
+BOOL worker_thread_counter_func(void* arg)
 {
 	++(* (int*) arg);
+	return FALSE;
 }
 
 cunit_err_t test_worker_thread_start_stop()
