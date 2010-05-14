@@ -46,16 +46,16 @@ run_single_test(void* param)
 	cunit_test_rec_t* test = param;
 	cunit_err_t retcode = test->test();
 
-	printf("%d. %s - ", test->idx, test->name);
+	printf("\033[01;37m%d. %s - ", test->idx, test->name);
 
 	switch (retcode)
 	{
 	case ceSuccess:	{
-			printf("PASS\n");
+			printf("\033[01;32mPASS\033[01;37m\n");
 			++g_suite.passed;
 		}break;
 	case ceFail: {
-			printf("FAIL\n");
+			printf("\033[22;31mFAIL\033[01;37m\n");
 			++g_suite.failed;
 		}break;
 	default:
@@ -72,7 +72,7 @@ cunit_err_t cunit_run_suite()
 	}
 	g_suite.passed = g_suite.failed = 0;
 	queue_for_each(g_suite.tests, run_single_test);
-	printf("Passed: %d/%d\n", g_suite.passed, g_suite.passed + g_suite.failed);
+	printf("\033[22;37mPassed: %d/%d\n", g_suite.passed, g_suite.passed + g_suite.failed);
 	return ceSuccess;
 }
 
