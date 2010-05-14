@@ -10,6 +10,7 @@
 
 #include "util/bitmap.h"
 #include "util/vmsim_types.h"
+#include "util/rwlock.h"
 
 typedef struct {
 	BYTE* data;
@@ -19,6 +20,8 @@ typedef struct {
 	int process_block_size;
 
 	bitmap_t alloc_bitmap;
+
+	rwlock_t lock;
 
 	void* orig_addr;//used for debugging
 }disk_t;
