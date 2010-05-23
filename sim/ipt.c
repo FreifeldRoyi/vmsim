@@ -35,13 +35,13 @@ errcode_t ipt_init(ipt_t* ipt, int size)
 static int get_vaddr_idx(ipt_t* ipt,virt_addr_t addr)
 {
 	int idx = ipt_hash(ipt, addr);
-	if (ipt->entries[idx].valid)
+	if (ipt->entries[idx].page_data.valid)
 	{
-		while ( (!VIRT_ADDR_EQ(ipt->entries[idx].addr, addr))&&
+		while ( (!VIRT_ADDR_EQ(ipt->entries[idx].page_data.addr, addr))&&
 				(idx != IPT_INVALID)
 				)
 		{
-			assert(ipt->entries[idx].valid);//invalid entry inside a hash list.
+			assert(ipt->entries[idx].page_data.valid);//invalid entry inside a hash list.
 			idx = ipt->entries[idx].next;
 		}
 
@@ -59,8 +59,8 @@ static int get_vaddr_idx(ipt_t* ipt,virt_addr_t addr)
 
 	for (idx = 0; idx < ipt->size; ++idx)
 	{
-		if ((VIRT_ADDR_EQ(ipt->entries[idx].addr, addr))&&
-				(ipt->entries[idx].valid))
+		if ((VIRT_ADDR_EQ(ipt->entries[idx].page_data.addr, addr))&&
+				(ipt->entries[idx].page_data.valid))
 		{
 			DEBUG1("\nlinear idx %d\n", idx);
 			return idx;
@@ -72,12 +72,12 @@ static int get_vaddr_idx(ipt_t* ipt,virt_addr_t addr)
 
 static void init_ipt_slot(ipt_t* ipt, int idx,virt_addr_t addr, int next, int prev)
 {
-	ipt->entries[idx].addr = addr;
-	ipt->entries[idx].dirty = FALSE;
-	ipt->entries[idx].referenced = FALSE;
+	ipt->entries[idx].page_data.addr = addr;
+	ipt->entries[idx].page_data.dirty = FALSE;
+	ipt->entries[idx].page_data.referenced = FALSE;
 	ipt->entries[idx].next = next;
 	ipt->entries[idx].prev = prev;
-	ipt->entries[idx].valid = TRUE;
+	ipt->entries[idx].page_data.valid = TRUE;
 }
 
 static void dump_list(ipt_t* ipt)
@@ -88,11 +88,11 @@ static void dump_list(ipt_t* ipt)
 	for (i=0; i<ipt->size; ++i)
 	{
 		printf("%3d|(%d:%d)|%4d|%4d|%s\n", 	i,
-									VIRT_ADDR_PID(ipt->entries[i].addr),
-									VIRT_ADDR_PAGE(ipt->entries[i].addr),
+									VIRT_ADDR_PID(ipt->entries[i].page_data.addr),
+									VIRT_ADDR_PAGE(ipt->entries[i].page_data.addr),
 									ipt->entries[i].prev,
 									ipt->entries[i].next,
-									ipt->entries[i].valid?"Yes":"No");
+									ipt->entries[i].page_data.valid?"Yes":"No");
 	}
 }
 
@@ -106,13 +106,13 @@ BOOL ipt_has_translation(ipt_t* ipt, virt_addr_t addr)
 		return FALSE;
 	}
 
-	if (!ipt->entries[idx].valid)
+	if (!ipt->entries[idx].page_data.valid)
 	{
 		DEBUG("\nget_vaddr_idx returned an invalid entry\n");
 		return FALSE;
 	}
 
-	if (!VIRT_ADDR_EQ(ipt->entries[idx].addr, addr))
+	if (!VIRT_ADDR_EQ(ipt->entries[idx].page_data.addr, addr))
 	{
 		DEBUG("\nget_vaddr_idx returned an entry with the wrong vaddr\n");
 		return FALSE;
@@ -124,23 +124,23 @@ BOOL ipt_has_translation(ipt_t* ipt, virt_addr_t addr)
 BOOL ipt_is_dirty(ipt_t* ipt, virt_addr_t addr)
 {
 	assert (ipt_has_translation(ipt, addr));
-	return ipt->entries[get_vaddr_idx(ipt, addr)].dirty;
+	return ipt->entries[get_vaddr_idx(ipt, addr)].page_data.dirty;
 }
 
 BOOL ipt_is_referenced(ipt_t* ipt, virt_addr_t addr)
 {
 	assert (ipt_has_translation(ipt, addr));
-	return ipt->entries[get_vaddr_idx(ipt, addr)].referenced;
+	return ipt->entries[get_vaddr_idx(ipt, addr)].page_data.referenced;
 }
 
 errcode_t ipt_reference(ipt_t* ipt, virt_addr_t addr, ipt_ref_t reftype)
 {
 	assert (ipt_has_translation(ipt, addr));
 
-	ipt->entries[get_vaddr_idx(ipt, addr)].referenced = TRUE;
+	ipt->entries[get_vaddr_idx(ipt, addr)].page_data.referenced = TRUE;
 	if (reftype == refWrite)
 	{
-		ipt->entries[get_vaddr_idx(ipt, addr)].dirty = TRUE;
+		ipt->entries[get_vaddr_idx(ipt, addr)].page_data.dirty = TRUE;
 	}
 
 	return ecSuccess;
@@ -157,13 +157,20 @@ errcode_t ipt_translate(ipt_t* ipt, virt_addr_t addr, phys_addr_t* paddr)
 	return ecSuccess;
 }
 
+errcode_t ipt_reverse_translate(ipt_t* ipt, phys_addr_t paddr, virt_addr_t* vaddr)
+{
+	*vaddr = ipt->entries[paddr].page_data.addr;
+
+	return ecSuccess;
+}
+
 static errcode_t do_add(ipt_t* ipt, virt_addr_t addr)
 {
 	int idx = ipt_hash(ipt, addr);
 	int prev_idx, next_idx;
 
 	//if we don't to walk the hash list, just initialize to proper slot and return.
-	if (!ipt->entries[idx].valid)
+	if (!ipt->entries[idx].page_data.valid)
 	{
 		init_ipt_slot(ipt, idx, addr, IPT_INVALID, IPT_INVALID);
 		return ecSuccess;
@@ -171,7 +178,7 @@ static errcode_t do_add(ipt_t* ipt, virt_addr_t addr)
 
 	idx = 0;
 	//find the next available slot
-	while ((ipt->entries[idx].valid) && (idx < ipt->size))
+	while ((ipt->entries[idx].page_data.valid) && (idx < ipt->size))
 	{
 		++idx;
 	}
@@ -223,16 +230,25 @@ errcode_t ipt_remove(ipt_t* ipt, virt_addr_t addr)
 
 	if (prev_idx == IPT_INVALID)
 	{
-		/*this is the first element in a hashlist.
-		 * since we want subsequent searches to find the right hashlist, we'll move
-		 * the second element to this index, since this is the expected index for
-		 * this vaddr.
-		 */
-		ipt->entries[idx] = ipt->entries[next_idx];
-		ipt->entries[idx].prev = IPT_INVALID;
-		ipt->entries[next_idx].valid = FALSE;
 
-		ipt->entries[ipt->entries[idx].next].prev = idx;
+		if (next_idx != IPT_INVALID)
+		{
+			/*this is the first element in a hashlist.
+			 * since we want subsequent searches to find the right hashlist, we'll move
+			 * the second element to this index, since this is the expected index for
+			 * this vaddr.
+			 */
+			ipt->entries[idx] = ipt->entries[next_idx];
+			ipt->entries[idx].prev = IPT_INVALID;
+			ipt->entries[next_idx].page_data.valid = FALSE;
+
+			ipt->entries[ipt->entries[idx].next].prev = idx;
+		}
+		else
+		{
+			//just delete this element
+			ipt->entries[idx].page_data.valid = FALSE;
+		}
 	}
 	else
 	{
@@ -241,12 +257,24 @@ errcode_t ipt_remove(ipt_t* ipt, virt_addr_t addr)
 		{
 			ipt->entries[next_idx].prev = prev_idx;
 		}
-		ipt->entries[idx].valid = FALSE;
+		ipt->entries[idx].page_data.valid = FALSE;
 	}
 
 //	dump_list(ipt);
 
 	return ecSuccess;
+}
+
+errcode_t ipt_for_each_entry(ipt_t* ipt, void (*func)(phys_addr_t, page_data_t*))
+{
+	int i;
+	for (i=0; i<ipt->size; ++i)
+	{
+		if (ipt->entries[i].page_data.valid)
+		{
+			func(i, &ipt->entries[i].page_data);
+		}
+	}
 }
 
 void ipt_destroy(ipt_t* ipt)
