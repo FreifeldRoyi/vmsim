@@ -176,7 +176,7 @@ static errcode_t do_add(ipt_t* ipt, virt_addr_t addr)
 		++idx;
 	}
 
-	if (ipt->entries[idx].valid)
+	if (idx == ipt->size)
 	{
 		return ecFail;
 	}
