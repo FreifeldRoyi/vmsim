@@ -11,30 +11,24 @@ typedef struct _ipt_entry_t{
 	BOOL referenced;
 	BOOL valid;
 
+	void* extra_data;
+
 	int next;
 	int prev;
 }ipt_entry_t;
 
-typedef void (*page_fault_handler_t) (virt_addr_t addr);
-typedef void (*out_of_mem_handler_t) ();
-
-typedef struct{
-	page_fault_handler_t page_fault;
-	out_of_mem_handler_t out_of_mem;
-}mm_ops_t;
-
 typedef struct{
 	ipt_entry_t *entries;
 	int size;
-
-	mm_ops_t mm_ops;
 }ipt_t;
 
-errcode_t ipt_init(ipt_t* ipt, int size, mm_ops_t mm_ops);
+errcode_t ipt_init(ipt_t* ipt, int size);
 
 BOOL ipt_has_translation(ipt_t* ipt, virt_addr_t addr);
 BOOL ipt_is_dirty(ipt_t* ipt, virt_addr_t addr);
 BOOL ipt_is_referenced(ipt_t* ipt, virt_addr_t addr);
+
+void ipt_get_extra_data(ipt_t* ipt, virt_addr_t addr);
 
 errcode_t ipt_reference(ipt_t* ipt, virt_addr_t addr, ipt_ref_t reftype);
 errcode_t ipt_translate(ipt_t* ipt, virt_addr_t addr, phys_addr_t* paddr);
