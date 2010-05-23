@@ -47,7 +47,7 @@ static int get_vaddr_idx(ipt_t* ipt,virt_addr_t addr)
 
 		if (idx != -1)
 		{
-//			printf("\nget_vaddr_idx:idx %d\n", idx);
+			DEBUG1("\nidx %d\n", idx);
 			return idx;
 		}
 	}
@@ -62,7 +62,7 @@ static int get_vaddr_idx(ipt_t* ipt,virt_addr_t addr)
 		if ((VIRT_ADDR_EQ(ipt->entries[idx].addr, addr))&&
 				(ipt->entries[idx].valid))
 		{
-//			printf("\nget_vaddr_idx: linear idx %d\n", idx);
+			DEBUG1("\nlinear idx %d\n", idx);
 			return idx;
 		}
 	}
@@ -204,7 +204,7 @@ static errcode_t do_add(ipt_t* ipt, virt_addr_t addr)
 errcode_t ipt_add(ipt_t* ipt, virt_addr_t addr)
 {
 	assert(!ipt_has_translation(ipt, addr));
-//	printf("ipt_add: %p adding %d:%d\n",ipt, VIRT_ADDR_PID(addr), VIRT_ADDR_PAGE(addr));
+	DEBUG3("ipt_add: %p adding %d:%d\n",ipt, VIRT_ADDR_PID(addr), VIRT_ADDR_PAGE(addr));
 	return do_add(ipt, addr);
 }
 
@@ -213,7 +213,7 @@ errcode_t ipt_remove(ipt_t* ipt, virt_addr_t addr)
 	int idx, next_idx, prev_idx;
 	assert(ipt_has_translation(ipt, addr));
 
-//	printf("ipt_remove: %p removing %d:%d\n",ipt, VIRT_ADDR_PID(addr), VIRT_ADDR_PAGE(addr));
+	DEBUG3("ipt_remove: %p removing %d:%d\n",ipt, VIRT_ADDR_PID(addr), VIRT_ADDR_PAGE(addr));
 
 //	dump_list(ipt);
 
