@@ -18,7 +18,6 @@ typedef struct _mm_t
 
 	int npages;
 	int page_size;
-	int process_block_size; //TODO not sure if it is needed
 
 	bitmap_t bitmap;
 

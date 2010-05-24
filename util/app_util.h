@@ -39,6 +39,22 @@ void print_MM(mm_t* mm);
 void print_MMU_table(ipt_t* table);
 
 /**
+ * creates a new process and prints its id on screen
+ * updates all data structures
+ * TODO maybe add parameters later
+ * returns the process' id or -1 in case of a failure
+ */
+int create_process();
+
+/**
+ * deletes the process with the given id
+ * or prints a message if an error occurred.
+ * NOTE: the UI thread will perform this job
+ * 	and the UI will not return until this job is finished
+ */
+void del_process(int id);
+
+/**
  *prints the registers of the aging algorithm
  */
 //void print_registers(register_t** reg);
@@ -57,6 +73,13 @@ void print_MMU_table(ipt_t* table);
  * switches the system to No Monitor mode
  */
 //void monitor_off();
+
+void load_app_data(char* file_name);
+
+/**
+ * free all application related data
+ */
+void free_app_data(app_data_t* app_data);
 
 #endif /* APP_UTIL_H_ */
 

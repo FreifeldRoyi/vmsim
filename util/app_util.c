@@ -69,3 +69,23 @@ void print_MM(mm_t* mm)
 	printf("BITMAP: ");
 	print_bitmap(&MM_BITMAP(&mm));
 }
+
+int create_process()
+{
+	//TODO implement and check h file if parameters were added
+}
+
+void del_process(int pid)
+{
+	//TODO implement
+}
+
+void load_app_data(char* file_name)
+{
+
+}
+
+void free_app_data(app_data_t* app_data)
+{
+	//TODO implement
+}
