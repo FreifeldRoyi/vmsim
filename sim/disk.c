@@ -95,6 +95,7 @@ errcode_t disk_set_page(disk_t* disk, int page, BYTE *page_data)
 
 	if (!is_page_allocated(disk, page))
 	{
+		WRITE_END(disk);
 		return ecFail;
 	}
 	memcpy(get_page_start(disk, page), page_data, disk->page_size);
