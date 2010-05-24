@@ -39,6 +39,24 @@ errcode_t mmu_map_page_unlocked(mmu_t* mmu, virt_addr_t addr)
 	return ipt_add(&mmu->mem_ipt, addr);
 }
 
+errcode_t mmu_alloc_multiple(mmu_t* mmu, virt_addr_t addr, int npages, int first_backing_page)
+{
+	errcode_t errcode;
+	int disk_page;
+	for (disk_page=first_backing_page; disk_page < npages; ++disk_page)
+	{
+		//we intentionally don't lock the MMU for the whole operation. this way if
+		//several processes allocate pages at the same time, some pages of each process
+		//will get to live in memory instead of all the pages of a few processes.
+		errcode = mmu_alloc_page(mmu, addr, disk_page);
+		if (errcode != ecSuccess)
+		{
+			return errcode;
+		}
+	}
+	return ecSuccess;
+}
+
 errcode_t mmu_alloc_page(mmu_t* mmu, virt_addr_t addr, int backing_page)
 {
 	errcode_t errcode;
@@ -48,7 +66,6 @@ errcode_t mmu_alloc_page(mmu_t* mmu, virt_addr_t addr, int backing_page)
 	//we don't care about the return code - if there was not enough room in the
 	//memory, we'll map the page only to the disk, and on the next access to it
 	//it will be swapped in.
-
 	assert(map_get(&mmu->disk_map, &addr, NULL) == ecNotFound);
 	errcode = map_set(&mmu->disk_map, &addr, &backing_page);
 	assert(errcode == ecSuccess);
