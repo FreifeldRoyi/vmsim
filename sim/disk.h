@@ -26,6 +26,8 @@ typedef struct {
 	void* orig_addr;//used for debugging
 }disk_t;
 
+#define DISK_NUM_OF_PAGES(_disk) ((_disk)->npages)
+
 errcode_t disk_init(disk_t* disk, int npages, int pagesize, int blocksize);
 
 errcode_t disk_alloc_process_block(disk_t* disk, int* page);

@@ -79,6 +79,7 @@ errcode_t disk_get_page(disk_t* disk, int page, BYTE *page_data)
 	assert(page < disk->npages);
 	if (!is_page_allocated(disk, page))
 	{
+		READ_END(disk);
 		return ecFail;
 	}
 	memcpy(page_data, get_page_start(disk, page), disk->page_size);
