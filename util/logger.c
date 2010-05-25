@@ -2,6 +2,15 @@
 
 #include <stdio.h>
 #include <stdarg.h>
+
+#include <sys/syscall.h>
+#include <unistd.h>
+
+pid_t cur_tid()
+{
+	return syscall(SYS_gettid);
+}
+
 ///TODO add synchronization
 
 static log_level_t g_log_level = lvInfo;
@@ -13,7 +22,7 @@ void log_write(	const char* file, int line, const char* func,
 	va_start(arglist, message);
 	if (level >= g_log_level)
 	{
-		printf("%s(%d) %s:", file, line, func);
+		printf("[%d]%s(%d) %s:", cur_tid(), file, line, func);
 		vprintf(message, arglist);
 	}
 	va_end(arglist);
