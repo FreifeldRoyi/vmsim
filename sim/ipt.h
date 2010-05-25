@@ -25,6 +25,7 @@ typedef struct _ipt_entry_t{
 typedef struct{
 	ipt_entry_t *entries;
 	int size;
+	int num_valid_entries;
 }ipt_t;
 
 errcode_t ipt_init(ipt_t* ipt, int size);
