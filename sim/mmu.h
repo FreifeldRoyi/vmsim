@@ -28,7 +28,8 @@ errcode_t mmu_unmap_page(mmu_t* mmu, virt_addr_t page);
 errcode_t mmu_unmap_page_unlocked(mmu_t* mmu, virt_addr_t page);
 errcode_t mmu_free_page(mmu_t* mmu, virt_addr_t page);
 
-errcode_t mmu_alloc_multiple(mmu_t* mmu, virt_addr_t addr, int npages, int first_backing_page);
+errcode_t mmu_alloc_multiple(mmu_t* mmu, virt_addr_t first_addr, int npages, int first_backing_page);
+errcode_t mmu_free_multiple(mmu_t* mmu, virt_addr_t first_addr, int npages);
 
 errcode_t mmu_read(mmu_t* mmu, virt_addr_t page, unsigned offset, unsigned nbytes, BYTE* buf);
 errcode_t mmu_write(mmu_t* mmu, virt_addr_t page, unsigned offset, unsigned nbytes, BYTE* buf);

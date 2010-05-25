@@ -39,20 +39,50 @@ errcode_t mmu_map_page_unlocked(mmu_t* mmu, virt_addr_t addr)
 	return ipt_add(&mmu->mem_ipt, addr);
 }
 
-errcode_t mmu_alloc_multiple(mmu_t* mmu, virt_addr_t addr, int npages, int first_backing_page)
+errcode_t mmu_alloc_multiple(mmu_t* mmu, virt_addr_t first_addr, int npages, int first_backing_page)
 {
 	errcode_t errcode;
 	int disk_page;
-	for (disk_page=first_backing_page; disk_page < npages; ++disk_page)
+	virt_addr_t cur_vaddr;
+
+	VIRT_ADDR_PID(cur_vaddr) = VIRT_ADDR_PID(first_addr);
+	VIRT_ADDR_PAGE(cur_vaddr) = VIRT_ADDR_PAGE(first_addr);
+
+	for (disk_page=first_backing_page; disk_page < first_backing_page + npages; ++disk_page)
 	{
 		//we intentionally don't lock the MMU for the whole operation. this way if
 		//several processes allocate pages at the same time, some pages of each process
 		//will get to live in memory instead of all the pages of a few processes.
-		errcode = mmu_alloc_page(mmu, addr, disk_page);
+		errcode = mmu_alloc_page(mmu, cur_vaddr, disk_page);
 		if (errcode != ecSuccess)
 		{
 			return errcode;
 		}
+		VIRT_ADDR_PAGE(cur_vaddr)++;
+	}
+	return ecSuccess;
+}
+
+errcode_t mmu_free_multiple(mmu_t* mmu, virt_addr_t first_addr, int npages)
+{
+	errcode_t errcode;
+	int cur_page;
+	virt_addr_t cur_vaddr;
+
+	VIRT_ADDR_PID(cur_vaddr) = VIRT_ADDR_PID(first_addr);
+	VIRT_ADDR_PAGE(cur_vaddr) = VIRT_ADDR_PAGE(first_addr);
+
+	for (cur_page=0; cur_page < npages; ++cur_page)
+	{
+		//we intentionally don't lock the MMU for the whole operation. this way if
+		//several processes allocate pages at the same time, some pages of each process
+		//will get to live in memory instead of all the pages of a few processes.
+		errcode = mmu_free_page(mmu, cur_vaddr);
+		if (errcode != ecSuccess)
+		{
+			return errcode;
+		}
+		VIRT_ADDR_PAGE(cur_vaddr)++;
 	}
 	return ecSuccess;
 }
@@ -62,12 +92,15 @@ errcode_t mmu_alloc_page(mmu_t* mmu, virt_addr_t addr, int backing_page)
 	errcode_t errcode;
 	MMU_MODIFY_START(mmu);
 
+	DEBUG2("Allocating (%d:%d)\n", VIRT_ADDR_PID(addr), VIRT_ADDR_PAGE(addr));
+
 	errcode = mmu_map_page_unlocked(mmu, addr);
 	//we don't care about the return code - if there was not enough room in the
 	//memory, we'll map the page only to the disk, and on the next access to it
 	//it will be swapped in.
 	assert(map_get(&mmu->disk_map, &addr, NULL) == ecNotFound);
 	errcode = map_set(&mmu->disk_map, &addr, &backing_page);
+	DEBUG2("Added disk mapping: (%d:%d)\n", VIRT_ADDR_PID(addr), VIRT_ADDR_PAGE(addr));
 	assert(errcode == ecSuccess);
 
 	MMU_MODIFY_END(mmu);
@@ -86,7 +119,7 @@ errcode_t mmu_map_page(mmu_t* mmu, virt_addr_t addr)
 errcode_t mmu_unmap_page_unlocked(mmu_t* mmu, virt_addr_t page)
 {
 	errcode_t errcode;
-	DEBUG2("freeing %d:%d\n", VIRT_ADDR_PID(page), VIRT_ADDR_PAGE(page));
+	DEBUG2("Unmapping %d:%d\n", VIRT_ADDR_PID(page), VIRT_ADDR_PAGE(page));
 	if (ipt_has_translation(&mmu->mem_ipt, page))
 	{
 		errcode = ipt_remove(&mmu->mem_ipt, page);
@@ -106,6 +139,7 @@ errcode_t mmu_unmap_page(mmu_t* mmu, virt_addr_t page)
 
 errcode_t mmu_free_page(mmu_t* mmu, virt_addr_t page)
 {
+	DEBUG2("Freeing (%d:%d)\n", VIRT_ADDR_PID(page), VIRT_ADDR_PAGE(page));
 	MMU_MODIFY_START(mmu);
 	assert(map_get(&mmu->disk_map, &page, NULL)!=ecNotFound);
 	mmu_unmap_page_unlocked(mmu, page);
