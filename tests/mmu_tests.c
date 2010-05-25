@@ -1,5 +1,8 @@
 #include "cunit/cunit.h"
+#include "util/worker_thread.h"
 #include <string.h>
+#include <unistd.h>
+
 
 #define MEM_NPAGES 11
 #define DISK_NPAGES 109
@@ -96,6 +99,41 @@ cunit_err_t test_mmu_alloc_free_sanity()
 	}
 
 	mmu_destroy(&mmu);
+	disk_destroy(&disk);
+	mmu_destroy(&mmu);
+
+	return ceSuccess;
+}
+
+cunit_err_t test_mmu_alloc_free_multiple()
+{
+	mmu_t mmu;
+	mm_t mem;
+	disk_t disk;
+	virt_addr_t addr = {0,0};
+	int i,j;
+	BYTE buf[PAGESIZE];
+
+	ASSERT_EQUALS(ecSuccess, mm_init(&mem, MEM_NPAGES, PAGESIZE));
+	ASSERT_EQUALS(ecSuccess, disk_init(&disk,DISK_NPAGES, PAGESIZE, DISK_BLOCKSIZE));
+
+	ASSERT_EQUALS(ecSuccess, mmu_init(&mmu, &mem, &disk));
+
+	for (i=0; i< 5; ++i)
+	{
+		ASSERT_EQUALS(ecSuccess, mmu_alloc_multiple(&mmu, addr,MEM_NPAGES, 0));
+		for (j=0; j<MEM_NPAGES; ++j)
+		{
+			VIRT_ADDR_PAGE(addr) = j;
+			mmu_read(&mmu, addr, 0, PAGESIZE, buf);
+		}
+		VIRT_ADDR_PAGE(addr) = 0;
+		ASSERT_EQUALS(ecSuccess, mmu_free_multiple(&mmu, addr, MEM_NPAGES));
+	}
+
+	mm_destroy(&mem);
+	disk_destroy(&disk);
+	mmu_destroy(&mmu);
 
 	return ceSuccess;
 }
@@ -114,8 +152,99 @@ cunit_err_t test_mmu_alloc_free_oom()
 	ASSERT_EQUALS(ceSuccess, alloc_junk_pages(&mmu, DISK_NPAGES));
 	ASSERT_EQUALS(ceSuccess, free_junk_pages(&mmu, DISK_NPAGES));
 
+	mmu_destroy(&mmu);
+	mm_destroy(&mem);
+	disk_destroy(&disk);
+
 	return ceSuccess;
 }
+
+#define NPROCS (DISK_NPAGES/DISK_BLOCKSIZE)
+
+typedef struct
+{
+	mmu_t* mmu;
+	procid_t pid;
+	int disk_page;
+	int alloc_size;
+	int nallocs;
+}alloc_free_thread_params_t;
+
+static BOOL
+alloc_free_func(void* arg)
+{
+	alloc_free_thread_params_t* params = (alloc_free_thread_params_t*)arg;
+	virt_addr_t addr;
+	VIRT_ADDR_PID(addr)=params->pid;
+	VIRT_ADDR_PAGE(addr)=0;
+
+	assert(mmu_alloc_multiple(params->mmu, addr, params->alloc_size,params->disk_page) == ecSuccess);
+	assert(validated_write(params->mmu, addr, 0, PAGESIZE) == ceSuccess);
+	assert(mmu_free_multiple(params->mmu, addr, params->alloc_size) == ecSuccess);
+	++params->nallocs;
+
+	return FALSE;
+}
+
+static cunit_err_t
+do_test_mmu_alloc_free_stress(int alloc_size)
+{
+	mmu_t mmu;
+	mm_t mem;
+	disk_t disk;
+	worker_thread_t threads[NPROCS];
+	alloc_free_thread_params_t params[NPROCS];
+	int i;
+
+	ASSERT_EQUALS(ecSuccess, mm_init(&mem, MEM_NPAGES, PAGESIZE));
+	ASSERT_EQUALS(ecSuccess, disk_init(&disk,DISK_NPAGES, PAGESIZE, DISK_BLOCKSIZE));
+
+	ASSERT_EQUALS(ecSuccess, mmu_init(&mmu, &mem, &disk));
+
+	ASSERT_EQUALS(ecSuccess, prm_init(&mmu));
+
+	for (i=0; i<NPROCS; ++i)
+	{
+		worker_thread_create(&threads[i],alloc_free_func);
+		params[i].pid = i;
+		params[i].mmu = &mmu;
+		params[i].nallocs = 0;
+		params[i].alloc_size = alloc_size;
+		disk_alloc_process_block(&disk, &params[i].disk_page);
+	}
+
+	for (i=0; i<NPROCS; ++i)
+	{
+		worker_thread_start(&threads[i],&params[i]);
+	}
+
+	sleep(5);
+
+	for (i=0; i<NPROCS; ++i)
+	{
+		worker_thread_stop(&threads[i]);
+		ASSERT_TRUE(params[i].nallocs > 0);
+		worker_thread_destroy(&threads[i]);
+	}
+
+	prm_destroy();
+	mmu_destroy(&mmu);
+	disk_destroy(&disk);
+	mm_destroy(&mem);
+
+	return ceSuccess;
+}
+
+cunit_err_t test_mmu_alloc_free_stress()
+{
+	return do_test_mmu_alloc_free_stress(1);
+}
+
+cunit_err_t test_mmu_alloc_free_pagefault_stress()
+{
+	return do_test_mmu_alloc_free_stress(DISK_BLOCKSIZE);
+}
+
 
 cunit_err_t test_mmu_read_write_sanity()
 {
@@ -133,6 +262,8 @@ cunit_err_t test_mmu_read_write_sanity()
 
 	ASSERT_EQUALS(ceSuccess, validated_write(&mmu, addr, 0,PAGESIZE));
 
+	mm_destroy(&mem);
+	disk_destroy(&disk);
 	mmu_destroy(&mmu);
 
 	return ceSuccess;
@@ -166,6 +297,8 @@ cunit_err_t test_mmu_read_write_pagefault()
 	ASSERT_EQUALS(ceSuccess, free_junk_pages(&mmu, MEM_NPAGES));
 	ASSERT_EQUALS(ecSuccess, mmu_free_page(&mmu, addr));
 
+	mm_destroy(&mem);
+	disk_destroy(&disk);
 	mmu_destroy(&mmu);
 	prm_destroy();
 
@@ -204,6 +337,8 @@ cunit_err_t test_mmu_sync_to_backing_page()
 
 	ASSERT_EQUALS(ecSuccess, mmu_free_page(&mmu, addr));
 
+	mm_destroy(&mem);
+	disk_destroy(&disk);
 	mmu_destroy(&mmu);
 
 	return ceSuccess;
@@ -240,6 +375,8 @@ cunit_err_t test_mmu_sync_from_backing_page()
 
 	ASSERT_EQUALS(ecSuccess, mmu_free_page(&mmu, addr));
 
+	mm_destroy(&mem);
+	disk_destroy(&disk);
 	mmu_destroy(&mmu);
 
 	return ceSuccess;
@@ -248,9 +385,12 @@ cunit_err_t test_mmu_sync_from_backing_page()
 void add_mmu_tests()
 {
 	ADD_TEST(test_mmu_alloc_free_sanity);
+	ADD_TEST(test_mmu_alloc_free_multiple);
 	ADD_TEST(test_mmu_alloc_free_oom);
 	ADD_TEST(test_mmu_read_write_sanity);
 	ADD_TEST(test_mmu_read_write_pagefault);
 	ADD_TEST(test_mmu_sync_to_backing_page);
 	ADD_TEST(test_mmu_sync_from_backing_page);
+	ADD_TEST(test_mmu_alloc_free_stress);
+	ADD_TEST(test_mmu_alloc_free_pagefault_stress);
 }
