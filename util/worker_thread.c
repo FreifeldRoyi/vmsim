@@ -31,11 +31,17 @@ errcode_t worker_thread_create(worker_thread_t* thread, worker_func_t func)
 
 errcode_t worker_thread_start_impl(worker_thread_t* thread, void* arg, const char* file, int line)
 {
+	errcode_t errcode;
 	thread->arg = arg;
 	thread->file_started = file;
 	thread->line_started = line;
-	return POSIX_ERRCODE(pthread_create(&thread->tid, NULL, worker_thread_func, thread));
+	errcode = POSIX_ERRCODE(pthread_create(&thread->tid, NULL, worker_thread_func, thread));
+	if (errcode != ecSuccess)
+		return errcode;
 
+	while(!thread->running)
+		;//wait
+	return errcode;
 }
 
 errcode_t worker_thread_stop(worker_thread_t* thread)
