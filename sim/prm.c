@@ -1,49 +1,64 @@
 #include "prm.h"
 #include "util/queue.h"
 #include "util/worker_thread.h"
+#include "util/logger.h"
 
 #include <pthread.h>
-
+#include <time.h>
+#include <sys/time.h>
+#include <string.h>
 #include <stdlib.h>
 #include <assert.h>
 
 static pthread_mutex_t prm_mutex;
+static pthread_cond_t prm_condvar;
 static pthread_mutex_t prm_queue_mutex;
+static pthread_cond_t prm_queue_condvar;
 static struct _queue_t* prm_queue;
 static worker_thread_t prm_thread;
 
-//we use a condvar per command, which is a bit heavyweight but saves us from
-//dealing with multiple threads that sleep on the same var.
 typedef struct
 {
 	virt_addr_t addr;
-	pthread_cond_t cond_var;
-	pthread_mutex_t mutex;
+	BOOL done;
 }prm_command_t;
+
+static struct timespec
+abs_time_from_delta(int delta)
+{
+	struct timeval tp;
+	struct timespec ts;
+
+	gettimeofday(&tp, NULL);
+
+	/* Convert from timeval to timespec */
+	ts.tv_sec  = tp.tv_sec;
+	ts.tv_nsec = tp.tv_usec * 1000;
+	ts.tv_sec += delta;
+	return ts;
+}
 
 static prm_command_t* new_prm_command(virt_addr_t addr)
 {
 	prm_command_t* cmd = malloc(sizeof(prm_command_t));
 	cmd->addr = addr;
-	pthread_cond_init(&cmd->cond_var, NULL);
-	pthread_mutex_init(&cmd->mutex, NULL);
-
-	pthread_mutex_lock(&cmd->mutex);
-
+	cmd->done = FALSE;
 	return cmd;
 }
 
 static void wait_for_completion(prm_command_t* cmd)
 {
-	pthread_cond_wait(&cmd->cond_var, &cmd->mutex);
-	pthread_mutex_unlock(&cmd->mutex);
+	pthread_mutex_lock(&prm_mutex);
+	while (!cmd->done)
+	{
+		pthread_cond_wait(&prm_condvar, &prm_mutex);
+	}
+	pthread_mutex_unlock(&prm_mutex);
+
 }
 
 static void delete_prm_command(prm_command_t* cmd)
 {
-	pthread_cond_destroy(&cmd->cond_var);
-	pthread_mutex_destroy(&cmd->mutex);
-
 	free(cmd);
 }
 
@@ -77,7 +92,13 @@ static int get_page_to_swap(mmu_t* mmu)
 static void push_command(prm_command_t* cmd)
 {
 	pthread_mutex_lock(&prm_queue_mutex);
+	DEBUG1("Pushing %p\n", cmd);
 	queue_push(prm_queue, cmd);
+	if (queue_size(prm_queue) == 1)
+	{
+		DEBUG("Signaling\n");
+		pthread_cond_broadcast(&prm_queue_condvar);
+	}
 	pthread_mutex_unlock(&prm_queue_mutex);
 }
 
@@ -91,19 +112,29 @@ static void prm_swap_out(mmu_t* mmu, phys_addr_t page)
 
 static BOOL prm_thread_func(void* arg)
 {
-	prm_command_t* cmd;
+	prm_command_t* cmd = NULL;
 	virt_addr_t addr;
 	mmu_t* mmu = arg;
 	unsigned mem_page_to_swap;
 	errcode_t errcode;
+	struct timespec wait_time;
 
 	pthread_mutex_lock(&prm_queue_mutex);
 	cmd = queue_pop(prm_queue);
-	pthread_mutex_unlock(&prm_queue_mutex);
-	if (cmd == NULL)
-	{
-		return FALSE;
+	while (cmd == NULL){
+		if (prm_thread.stop)
+		{
+			assert(cmd == NULL);
+			return FALSE;
+		}
+		wait_time = abs_time_from_delta(1);
+		pthread_cond_timedwait(&prm_queue_condvar, &prm_queue_mutex, &wait_time);
+		cmd = queue_pop(prm_queue);
 	}
+	pthread_mutex_unlock(&prm_queue_mutex);
+
+	DEBUG1("Popped %p\n", cmd);
+
 	addr = cmd->addr;
 
 	mmu_acquire(mmu);
@@ -119,8 +150,8 @@ static BOOL prm_thread_func(void* arg)
 	mmu_sync_from_backing_page(mmu, addr);
 	mmu_release(mmu);
 
-
-	pthread_cond_signal(&cmd->cond_var);
+	cmd->done = TRUE;
+	pthread_cond_broadcast(&prm_condvar);
 
 	return FALSE;
 }
@@ -128,8 +159,12 @@ static BOOL prm_thread_func(void* arg)
 errcode_t prm_init(mmu_t* mmu)
 {
 	errcode_t errcode;
+	INFO("PRM starting\n");
 	pthread_mutex_init(&prm_mutex,NULL);
 	pthread_mutex_init(&prm_queue_mutex,NULL);
+	pthread_cond_init(&prm_queue_condvar, NULL);
+
+	pthread_cond_init(&prm_condvar, NULL);
 	prm_queue = queue_init();
 	if (prm_queue == NULL)
 		return ecFail;
@@ -164,9 +199,12 @@ errcode_t prm_pagefault(virt_addr_t addr)
 
 void prm_destroy()
 {
+	INFO("PRM exiting\n");
 	worker_thread_stop(&prm_thread);
 	worker_thread_destroy(&prm_thread);
 	pthread_mutex_destroy(&prm_mutex);
 	pthread_mutex_destroy(&prm_queue_mutex);
+	pthread_cond_destroy(&prm_queue_condvar);
 	queue_destroy(prm_queue);
+	INFO("PRM exited\n");
 }
