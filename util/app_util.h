@@ -17,6 +17,11 @@ typedef struct
 {
 	BOOL initialized;
 
+	unsigned max_num_of_proc;
+	unsigned page_size;
+	unsigned num_of_proc_page;
+	unsigned shift_clock;
+
 	ipt_t ipt_table;
 	mm_t main_memory;
 	disk_t disk;
@@ -24,6 +29,10 @@ typedef struct
 } app_data_t;
 
 #define APP_DATA(x)	((app_data_t *) (x))
+#define APP_DATA_NUM_OF_PROC(x) APP_DATA((x)) -> max_num_of_proc
+#define APP_DATA_PAGE_SIZE(x) APP_DATA((x)) -> page_size
+#define APP_DATA_NUM_OF_PROC_PAGE(x) APP_DATA((x)) -> num_of_proc_page
+#define APP_DATA_SHIFT_CLOCK(x) APP_DATA((x)) -> shift_clock
 #define APP_DATA_INIT(x) APP_DATA((x)) -> initialized
 #define APP_DATA_IPT(x) APP_DATA((x)) -> ipt_table
 #define APP_DATA_MM(x) APP_DATA((x)) -> main_memory
@@ -74,7 +83,7 @@ void del_process(int id);
  */
 //void monitor_off();
 
-void load_app_data(char* file_name);
+void load_app_data(char* file_name, app_data_t* app_data);
 
 /**
  * free all application related data

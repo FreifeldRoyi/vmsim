@@ -8,6 +8,7 @@
 #include "app_util.h"
 #include <string.h>
 #include <malloc.h>
+#include <assert.h>
 
 static void print_ipt_entry(ipt_entry_t entry)
 {
@@ -80,9 +81,46 @@ void del_process(int pid)
 	//TODO implement
 }
 
-void load_app_data(char* file_name)
+static BOOL input_ok(int err)
 {
+	if (err <= 0 || err == EOF)
+		return FALSE;
 
+	return TRUE;
+}
+
+BOOL load_app_data(char* file_name, app_data_t* app_data)
+{
+	FILE* f;
+	unsigned n_page_mm;
+	unsigned n_page_disk;
+
+	int err;
+
+	if (app_data->initialized)
+	{
+		printf("Data already initialized");
+		return FALSE;
+	}
+
+	f = fopen(file_name,"r");
+
+	if (f == NULL)
+	{
+		printf("File not found: %s", file_name);
+		return FALSE;
+	}
+
+	fscanf(f, "MaxNumOfProcesses = %u", &APP_DATA_NUM_OF_PROC(app_data));
+	fscanf(f, "PageSize = %u", &APP_DATA_PAGE_SIZE(app_data));
+	fscanf(f, "NumOfPagesInMM = %u", &n_page_mm);
+	fscanf(f, "NumOfPagesInDisk = %u", &n_page_disk);
+	fscanf(f, "NumOfProcessPages = %u", &APP_DATA_NUM_OF_PROC_PAGE(app_data));
+	fscanf(f, "ShiftClock = %u", &APP_DATA_SHIFT_CLOCK(app_data));
+
+	//TODO finish
+
+	fclose(f);
 }
 
 void free_app_data(app_data_t* app_data)
