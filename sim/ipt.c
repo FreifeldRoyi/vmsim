@@ -191,6 +191,8 @@ errcode_t ipt_translate(ipt_t* ipt, virt_addr_t addr, phys_addr_t* paddr)
 	}
 
 	*paddr = get_vaddr_idx(ipt, addr);
+	assert(ipt->entries[*paddr].page_data.valid);
+
 	READ_END(ipt);
 	return ecSuccess;
 }
@@ -213,6 +215,7 @@ static errcode_t do_add(ipt_t* ipt, virt_addr_t addr)
 	if (!ipt->entries[idx].page_data.valid)
 	{
 		init_ipt_slot(ipt, idx, addr, IPT_INVALID, IPT_INVALID);
+		DEBUG3("(%d:%d) added to slot %d\n", VIRT_ADDR_PID(addr), VIRT_ADDR_PAGE(addr), idx);
 		return ecSuccess;
 	}
 
@@ -244,6 +247,8 @@ static errcode_t do_add(ipt_t* ipt, virt_addr_t addr)
 		ipt->entries[next_idx].prev = idx;
 	}
 
+	DEBUG3("(%d:%d) added to slot %d\n", VIRT_ADDR_PID(addr), VIRT_ADDR_PAGE(addr), idx);
+
 //	dump_list(ipt);
 	return ecSuccess;
 }
@@ -253,7 +258,7 @@ errcode_t ipt_add(ipt_t* ipt, virt_addr_t addr)
 	errcode_t errcode;
 	WRITE_START(ipt);
 	assert(!ipt_has_translation_unlocked(ipt, addr));
-	DEBUG3("ipt_add: %p adding %d:%d\n",ipt, VIRT_ADDR_PID(addr), VIRT_ADDR_PAGE(addr));
+	DEBUG2("%d:%d\n", VIRT_ADDR_PID(addr), VIRT_ADDR_PAGE(addr));
 
 	errcode = do_add(ipt, addr);
 	if (errcode == ecSuccess)
