@@ -48,10 +48,12 @@ static prm_command_t* new_prm_command(virt_addr_t addr)
 
 static void wait_for_completion(prm_command_t* cmd)
 {
+	struct timespec ts;
 	pthread_mutex_lock(&prm_mutex);
 	while (!cmd->done)
 	{
-		pthread_cond_wait(&prm_condvar, &prm_mutex);
+		ts = abs_time_from_delta(1);
+		pthread_cond_timedwait(&prm_condvar, &prm_mutex, &ts);
 	}
 	pthread_mutex_unlock(&prm_mutex);
 
@@ -128,9 +130,9 @@ static BOOL prm_thread_func(void* arg)
 	pthread_mutex_lock(&prm_queue_mutex);
 	cmd = queue_pop(prm_queue);
 	while (cmd == NULL){
-		if (prm_thread.stop)
+		if (worker_thread_should_stop(&prm_thread))
 		{
-			assert(cmd == NULL);
+			pthread_mutex_unlock(&prm_queue_mutex);
 			return FALSE;
 		}
 		wait_time = abs_time_from_delta(1);
@@ -143,14 +145,14 @@ static BOOL prm_thread_func(void* arg)
 
 	addr = cmd->addr;
 
-	DEBUG("Locking MMU\n");
+//	DEBUG("Locking MMU\n");
 //	mmu_block_alloc_free(mmu); pagefaults happen from read/write context where allocation is blocked anyway
 	errcode = mmu_map_page(mmu, addr);
 	if (errcode != ecSuccess) //no free pages in memory, swap a page out.
 	{
 		vaddr_to_swap = get_page_to_swap(mmu);
 		prm_swap_out(mmu, vaddr_to_swap);
-		errcode = mmu_map_page_unlocked(mmu, addr);
+		errcode = mmu_map_page(mmu, addr);
 		assert(errcode == ecSuccess);//if after swapping out we have no free pages, something's wrong.
 	}
 
@@ -158,8 +160,10 @@ static BOOL prm_thread_func(void* arg)
 //	mmu_release_alloc_free(mmu);
 	DEBUG("Released MMU\n");
 
+	pthread_mutex_lock(&prm_mutex);
 	cmd->done = TRUE;
 	pthread_cond_broadcast(&prm_condvar);
+	pthread_mutex_unlock(&prm_mutex);
 
 	return FALSE;
 }
@@ -196,6 +200,8 @@ errcode_t prm_pagefault(virt_addr_t addr)
 {
 	prm_command_t* cmd = new_prm_command(addr);
 
+	DEBUG2("(%d:%d)\n", VIRT_ADDR_PID(addr), VIRT_ADDR_PAGE(addr));
+
 	assert(worker_thread_is_running(&prm_thread));
 
 	push_command(cmd);
@@ -210,9 +216,11 @@ void prm_destroy()
 	INFO("PRM exiting\n");
 	worker_thread_stop(&prm_thread);
 	worker_thread_destroy(&prm_thread);
+	assert(queue_size(prm_queue) == 0);
 	pthread_mutex_destroy(&prm_mutex);
 	pthread_mutex_destroy(&prm_queue_mutex);
 	pthread_cond_destroy(&prm_queue_condvar);
+	pthread_cond_destroy(&prm_condvar);
 	queue_destroy(prm_queue);
 	INFO("PRM exited\n");
 }
