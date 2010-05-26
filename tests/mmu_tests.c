@@ -199,9 +199,9 @@ do_test_mmu_alloc_free_stress(int alloc_size)
 	ASSERT_EQUALS(ecSuccess, mm_init(&mem, MEM_NPAGES, PAGESIZE));
 	ASSERT_EQUALS(ecSuccess, disk_init(&disk,DISK_NPAGES, PAGESIZE, DISK_BLOCKSIZE));
 
-	ASSERT_EQUALS(ecSuccess, mmu_init(&mmu, &mem, &disk));
-
 	ASSERT_EQUALS(ecSuccess, prm_init(&mmu));
+
+	ASSERT_EQUALS(ecSuccess, mmu_init(&mmu, &mem, &disk));
 
 	for (i=0; i<NPROCS; ++i)
 	{
@@ -242,7 +242,15 @@ cunit_err_t test_mmu_alloc_free_stress()
 
 cunit_err_t test_mmu_alloc_free_pagefault_stress()
 {
-	return do_test_mmu_alloc_free_stress(DISK_BLOCKSIZE);
+	int i;
+	for (i=0;i<100; ++i)
+	{
+		if (do_test_mmu_alloc_free_stress(DISK_BLOCKSIZE) != ceSuccess)
+		{
+			return ceFail;
+		}
+	}
+	return ceSuccess;
 }
 
 
@@ -328,7 +336,7 @@ cunit_err_t test_mmu_sync_to_backing_page()
 	ASSERT_EQUALS(ceSuccess, write_pattern(&mmu, addr, 0,PAGESIZE, buf));
 	ASSERT_EQUALS(ecSuccess, mmu_write(&mmu, addr, 0, PAGESIZE, buf));
 
-	ASSERT_EQUALS(ecSuccess, mmu_sync_to_backing_page(&mmu, addr));
+	ASSERT_EQUALS(ecSuccess, mmu_sync_to_backing_page_unlocked(&mmu, addr));
 
 	memset(buf, 0, ARRSIZE(buf));
 	ASSERT_EQUALS(ecSuccess, disk_get_page(&disk, disk_page, buf));
@@ -367,7 +375,7 @@ cunit_err_t test_mmu_sync_from_backing_page()
 	ASSERT_EQUALS(ceSuccess, write_pattern(&mmu, addr, 0,PAGESIZE, buf));
 	ASSERT_EQUALS(ecSuccess, disk_set_page(&disk, disk_page, buf));
 
-	ASSERT_EQUALS(ecSuccess, mmu_sync_from_backing_page(&mmu, addr));
+	ASSERT_EQUALS(ecSuccess, mmu_sync_from_backing_page_unlocked(&mmu, addr));
 
 	memset(buf, 0, ARRSIZE(buf));
 	ASSERT_EQUALS(ecSuccess, mmu_read(&mmu, addr, 0, PAGESIZE, buf));

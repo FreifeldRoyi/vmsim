@@ -63,6 +63,7 @@ static void delete_prm_command(prm_command_t* cmd)
 }
 
 static int oldest_page_idx = -1;
+static virt_addr_t oldest_page_vaddr;
 static unsigned oldest_page_age = 0;
 
 static void get_oldest_page(phys_addr_t mem_page, page_data_t* page)
@@ -79,14 +80,15 @@ static void get_oldest_page(phys_addr_t mem_page, page_data_t* page)
 	{
 		oldest_page_idx = cur_idx;
 		oldest_page_age = age;
+		oldest_page_vaddr = page->addr;
 	}
 }
 
-static int get_page_to_swap(mmu_t* mmu)
+static virt_addr_t get_page_to_swap(mmu_t* mmu)
 {
 	oldest_page_idx = -1;
 	mmu_for_each_mem_page(mmu, get_oldest_page);
-	return oldest_page_idx;
+	return oldest_page_vaddr;
 }
 
 static void push_command(prm_command_t* cmd)
@@ -102,12 +104,16 @@ static void push_command(prm_command_t* cmd)
 	pthread_mutex_unlock(&prm_queue_mutex);
 }
 
-static void prm_swap_out(mmu_t* mmu, phys_addr_t page)
+static void prm_swap_out(mmu_t* mmu, virt_addr_t page)
 {
-	virt_addr_t vaddr = mmu_phys_to_virt(mmu, page);
+	phys_addr_t mem_page;
 
-	mmu_sync_to_backing_page(mmu, vaddr);
-	mmu_unmap_page_unlocked(mmu, vaddr);
+	mmu_pin_page(mmu, page, &mem_page);
+
+	mmu_sync_to_backing_page_unlocked(mmu, page);
+	mmu_unmap_page_unlocked(mmu, page);
+
+//	mmu_unpin_page(mmu, vaddr); no need. unmapping the page also unpins it.
 }
 
 static BOOL prm_thread_func(void* arg)
@@ -115,7 +121,7 @@ static BOOL prm_thread_func(void* arg)
 	prm_command_t* cmd = NULL;
 	virt_addr_t addr;
 	mmu_t* mmu = arg;
-	unsigned mem_page_to_swap;
+	virt_addr_t vaddr_to_swap;
 	errcode_t errcode;
 	struct timespec wait_time;
 
@@ -137,18 +143,20 @@ static BOOL prm_thread_func(void* arg)
 
 	addr = cmd->addr;
 
-	mmu_acquire(mmu);
-	errcode = mmu_map_page_unlocked(mmu, addr);
+	DEBUG("Locking MMU\n");
+//	mmu_block_alloc_free(mmu); pagefaults happen from read/write context where allocation is blocked anyway
+	errcode = mmu_map_page(mmu, addr);
 	if (errcode != ecSuccess) //no free pages in memory, swap a page out.
 	{
-		mem_page_to_swap = get_page_to_swap(mmu);
-		prm_swap_out(mmu, mem_page_to_swap);
+		vaddr_to_swap = get_page_to_swap(mmu);
+		prm_swap_out(mmu, vaddr_to_swap);
 		errcode = mmu_map_page_unlocked(mmu, addr);
 		assert(errcode == ecSuccess);//if after swapping out we have no free pages, something's wrong.
 	}
 
-	mmu_sync_from_backing_page(mmu, addr);
-	mmu_release(mmu);
+	mmu_sync_from_backing_page_unlocked(mmu, addr);
+//	mmu_release_alloc_free(mmu);
+	DEBUG("Released MMU\n");
 
 	cmd->done = TRUE;
 	pthread_cond_broadcast(&prm_condvar);

@@ -3,7 +3,7 @@
 
 #include "util/vmsim_types.h"
 
-typedef enum {refRead, refWrite} ipt_ref_t;
+typedef enum {refNone, refRead, refWrite} ipt_ref_t;
 
 typedef struct
 {
