@@ -5,6 +5,12 @@
 #include <assert.h>
 #include <stdio.h>
 
+#define READ_START(_ipt) DEBUG("Acquiring R\n");rwlock_acquire_read(&_ipt->lock)
+#define READ_END(_ipt) rwlock_release_read(&_ipt->lock);DEBUG("Released R\n")
+
+#define WRITE_START(_ipt) DEBUG("Acquiring W\n");rwlock_acquire_write(&_ipt->lock)
+#define WRITE_END(_ipt) rwlock_release_write(&_ipt->lock);DEBUG("Released W\n")
+
 #define IPT_INVALID -1
 
 static int ipt_hash(ipt_t* ipt, virt_addr_t addr)
@@ -22,6 +28,11 @@ errcode_t ipt_init(ipt_t* ipt, int size)
 		return ecFail;
 	}
 	ipt->size = size;
+	ipt->num_valid_entries = 0;
+	if (rwlock_init(&ipt->lock) != ecSuccess)
+	{
+		return ecFail;
+	}
 
 	for (i=0; i<size; ++i)
 	{
@@ -29,6 +40,7 @@ errcode_t ipt_init(ipt_t* ipt, int size)
 			ipt->entries[i].prev = IPT_INVALID;
 	}
 
+	DEBUG1("Created IPT %p\n", ipt->entries);
 	return ecSuccess;
 }
 
@@ -37,8 +49,8 @@ static int get_vaddr_idx(ipt_t* ipt,virt_addr_t addr)
 	int idx = ipt_hash(ipt, addr);
 	if (ipt->entries[idx].page_data.valid)
 	{
-		while ( (!VIRT_ADDR_EQ(ipt->entries[idx].page_data.addr, addr))&&
-				(idx != IPT_INVALID)
+		while ( (idx != IPT_INVALID) &&
+				(!VIRT_ADDR_EQ(ipt->entries[idx].page_data.addr, addr))
 				)
 		{
 			assert(ipt->entries[idx].page_data.valid);//invalid entry inside a hash list.
@@ -84,7 +96,7 @@ static void dump_list(ipt_t* ipt)
 {
 	int i;
 
-	printf("IPT Dump:\nidx|vaddr|prev|next|valid\n");
+	printf("IPT Dump:(%d valid entries)\nidx|vaddr|prev|next|valid\n", ipt->num_valid_entries);
 	for (i=0; i<ipt->size; ++i)
 	{
 		printf("%3d|(%d:%d)|%4d|%4d|%s\n", 	i,
@@ -96,9 +108,11 @@ static void dump_list(ipt_t* ipt)
 	}
 }
 
-BOOL ipt_has_translation(ipt_t* ipt, virt_addr_t addr)
+BOOL ipt_has_translation_unlocked(ipt_t* ipt, virt_addr_t addr)
 {
-	int idx = get_vaddr_idx(ipt, addr);
+	int idx;
+
+	idx= get_vaddr_idx(ipt, addr);
 
 	if (idx == IPT_INVALID)
 	{
@@ -121,46 +135,74 @@ BOOL ipt_has_translation(ipt_t* ipt, virt_addr_t addr)
 	return TRUE;
 }
 
+BOOL ipt_has_translation(ipt_t* ipt, virt_addr_t addr)
+{
+	BOOL ret;
+	READ_START(ipt);
+
+	ret = ipt_has_translation_unlocked(ipt, addr);
+
+	READ_END(ipt);
+	return ret;
+}
+
 BOOL ipt_is_dirty(ipt_t* ipt, virt_addr_t addr)
 {
-	assert (ipt_has_translation(ipt, addr));
-	return ipt->entries[get_vaddr_idx(ipt, addr)].page_data.dirty;
+	BOOL dirty;
+	READ_START(ipt);
+	assert (ipt_has_translation_unlocked(ipt, addr));
+	dirty = ipt->entries[get_vaddr_idx(ipt, addr)].page_data.dirty;
+	READ_END(ipt);
+	return dirty;
 }
 
 BOOL ipt_is_referenced(ipt_t* ipt, virt_addr_t addr)
 {
-	assert (ipt_has_translation(ipt, addr));
-	return ipt->entries[get_vaddr_idx(ipt, addr)].page_data.referenced;
+	BOOL ref;
+	READ_START(ipt);
+	assert (ipt_has_translation_unlocked(ipt, addr));
+	ref = ipt->entries[get_vaddr_idx(ipt, addr)].page_data.referenced;
+	READ_END(ipt);
+	return ref;
 }
 
 errcode_t ipt_reference(ipt_t* ipt, virt_addr_t addr, ipt_ref_t reftype)
 {
-	assert (ipt_has_translation(ipt, addr));
+	WRITE_START(ipt);
+	assert (ipt_has_translation_unlocked(ipt, addr));
 
 	ipt->entries[get_vaddr_idx(ipt, addr)].page_data.referenced = TRUE;
 	if (reftype == refWrite)
 	{
 		ipt->entries[get_vaddr_idx(ipt, addr)].page_data.dirty = TRUE;
 	}
+	WRITE_END(ipt);
 
 	return ecSuccess;
 }
 
 errcode_t ipt_translate(ipt_t* ipt, virt_addr_t addr, phys_addr_t* paddr)
 {
-	if (!ipt_has_translation(ipt, addr))
+	READ_START(ipt);
+	if (!ipt_has_translation_unlocked(ipt, addr))
 	{
+		READ_END(ipt);
 		return ecFail;
 	}
 
 	*paddr = get_vaddr_idx(ipt, addr);
+	assert(ipt->entries[*paddr].page_data.valid);
+
+	READ_END(ipt);
 	return ecSuccess;
 }
 
 errcode_t ipt_reverse_translate(ipt_t* ipt, phys_addr_t paddr, virt_addr_t* vaddr)
 {
+	READ_START(ipt);
 	*vaddr = ipt->entries[paddr].page_data.addr;
 
+	READ_END(ipt);
 	return ecSuccess;
 }
 
@@ -173,12 +215,13 @@ static errcode_t do_add(ipt_t* ipt, virt_addr_t addr)
 	if (!ipt->entries[idx].page_data.valid)
 	{
 		init_ipt_slot(ipt, idx, addr, IPT_INVALID, IPT_INVALID);
+		DEBUG3("(%d:%d) added to slot %d\n", VIRT_ADDR_PID(addr), VIRT_ADDR_PAGE(addr), idx);
 		return ecSuccess;
 	}
 
 	idx = 0;
 	//find the next available slot
-	while ((ipt->entries[idx].page_data.valid) && (idx < ipt->size))
+	while ( (idx < ipt->size) && (ipt->entries[idx].page_data.valid))
 	{
 		++idx;
 	}
@@ -204,21 +247,34 @@ static errcode_t do_add(ipt_t* ipt, virt_addr_t addr)
 		ipt->entries[next_idx].prev = idx;
 	}
 
+	DEBUG3("(%d:%d) added to slot %d\n", VIRT_ADDR_PID(addr), VIRT_ADDR_PAGE(addr), idx);
+
 //	dump_list(ipt);
 	return ecSuccess;
 }
 
 errcode_t ipt_add(ipt_t* ipt, virt_addr_t addr)
 {
-	assert(!ipt_has_translation(ipt, addr));
-	DEBUG3("ipt_add: %p adding %d:%d\n",ipt, VIRT_ADDR_PID(addr), VIRT_ADDR_PAGE(addr));
-	return do_add(ipt, addr);
+	errcode_t errcode;
+	WRITE_START(ipt);
+	assert(!ipt_has_translation_unlocked(ipt, addr));
+	DEBUG2("%d:%d\n", VIRT_ADDR_PID(addr), VIRT_ADDR_PAGE(addr));
+
+	errcode = do_add(ipt, addr);
+	if (errcode == ecSuccess)
+	{
+		++ipt->num_valid_entries;
+	}
+
+	WRITE_END(ipt);
+	return errcode;
 }
 
 errcode_t ipt_remove(ipt_t* ipt, virt_addr_t addr)
 {
 	int idx, next_idx, prev_idx;
-	assert(ipt_has_translation(ipt, addr));
+	WRITE_START(ipt);
+	assert(ipt_has_translation_unlocked(ipt, addr));
 
 	DEBUG3("ipt_remove: %p removing %d:%d\n",ipt, VIRT_ADDR_PID(addr), VIRT_ADDR_PAGE(addr));
 
@@ -242,7 +298,10 @@ errcode_t ipt_remove(ipt_t* ipt, virt_addr_t addr)
 			ipt->entries[idx].prev = IPT_INVALID;
 			ipt->entries[next_idx].page_data.valid = FALSE;
 
-			ipt->entries[ipt->entries[idx].next].prev = idx;
+			if (ipt->entries[idx].next != IPT_INVALID)
+			{
+				ipt->entries[ipt->entries[idx].next].prev = idx;
+			}
 		}
 		else
 		{
@@ -260,14 +319,17 @@ errcode_t ipt_remove(ipt_t* ipt, virt_addr_t addr)
 		ipt->entries[idx].page_data.valid = FALSE;
 	}
 
+	--ipt->num_valid_entries;
 //	dump_list(ipt);
 
+	WRITE_END(ipt);
 	return ecSuccess;
 }
 
 errcode_t ipt_for_each_entry(ipt_t* ipt, void (*func)(phys_addr_t, page_data_t*))
 {
 	int i;
+	READ_START(ipt);
 	for (i=0; i<ipt->size; ++i)
 	{
 		if (ipt->entries[i].page_data.valid)
@@ -275,12 +337,19 @@ errcode_t ipt_for_each_entry(ipt_t* ipt, void (*func)(phys_addr_t, page_data_t*)
 			func(i, &ipt->entries[i].page_data);
 		}
 	}
+	READ_END(ipt);
+	return ecSuccess;
 }
 
 void ipt_destroy(ipt_t* ipt)
 {
+	WRITE_START(ipt);
+	DEBUG1("Destroying IPT %p\n", ipt->entries);
 	free(ipt->entries);
 	ipt->entries = NULL;
+	WRITE_END(ipt);
+
+	rwlock_destroy(&ipt->lock);
 }
 
 #include "tests/ipt_tests.c"

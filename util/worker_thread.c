@@ -1,23 +1,41 @@
 #include "worker_thread.h"
 
+#define READ_START(_thread) rwlock_acquire_read(&(_thread)->lock)
+#define READ_END(_thread) rwlock_release_read(&(_thread)->lock)
+#define WRITE_START(_thread) rwlock_acquire_write(&(_thread)->lock)
+#define WRITE_END(_thread) rwlock_release_write(&(_thread)->lock)
+
+
 void* worker_thread_func(void* arg)
 {
 	worker_thread_t *thread = (worker_thread_t *)arg;
 	BOOL stop = FALSE;
-	thread->running = TRUE;
 
-	while ((!thread->stop) && (!stop))
+	WRITE_START(thread);
+	thread->running = TRUE;
+	WRITE_END(thread);
+
+	while (!stop)
 	{
 		stop = thread->func(thread->arg);
+		READ_START(thread);
+		if (thread->stop)
+			stop = TRUE;
+		READ_END(thread);
 	}
 
+	WRITE_START(thread);
 	thread->running = FALSE;
+	WRITE_END(thread);
 
 	return thread->arg;
 }
 
 errcode_t worker_thread_create(worker_thread_t* thread, worker_func_t func)
 {
+	rwlock_init(&thread->lock);
+
+	WRITE_START(thread);
 	thread->running = FALSE;
 	thread->stop = FALSE;
 	thread->arg = NULL;
@@ -25,23 +43,36 @@ errcode_t worker_thread_create(worker_thread_t* thread, worker_func_t func)
 
 	thread->file_started = NULL;
 	thread->line_started = -1;
+	WRITE_END(thread);
 
 	return ecSuccess;
 }
 
 errcode_t worker_thread_start_impl(worker_thread_t* thread, void* arg, const char* file, int line)
 {
+	errcode_t errcode;
+	WRITE_START(thread);
 	thread->arg = arg;
 	thread->file_started = file;
 	thread->line_started = line;
-	return POSIX_ERRCODE(pthread_create(&thread->tid, NULL, worker_thread_func, thread));
+	WRITE_END(thread);
+	errcode = POSIX_ERRCODE(pthread_create(&thread->tid, NULL, worker_thread_func, thread));
+	if (errcode != ecSuccess)
+		return errcode;
 
+	while(!worker_thread_is_running(thread))
+		;//wait
+
+	return errcode;
 }
 
 errcode_t worker_thread_stop(worker_thread_t* thread)
 {
+	WRITE_START(thread);
 	thread->stop = TRUE;
-	while (thread->running)
+	WRITE_END(thread);
+
+	while (worker_thread_is_running(thread))
 		;//wait
 
 	return ecSuccess;
@@ -49,12 +80,25 @@ errcode_t worker_thread_stop(worker_thread_t* thread)
 
 BOOL worker_thread_is_running(worker_thread_t* thread)
 {
-	return thread->running;
+	BOOL running;
+	READ_START(thread);
+	running = thread->running;
+	READ_END(thread);
+	return running;
+}
+
+BOOL worker_thread_should_stop(worker_thread_t* thread)
+{
+	BOOL stop;
+	READ_START(thread);
+	stop = thread->stop;
+	READ_END(thread);
+	return stop;
 }
 
 void worker_thread_destroy(worker_thread_t* thread)
 {
-///nothing to do
+	rwlock_destroy(&thread->lock);
 }
 
 #include "tests/worker_thread_tests.c"

@@ -2,8 +2,9 @@
 #define IPT_H_
 
 #include "util/vmsim_types.h"
+#include "util/rwlock.h"
 
-typedef enum {refRead, refWrite} ipt_ref_t;
+typedef enum {refNone, refRead, refWrite} ipt_ref_t;
 
 typedef struct
 {
@@ -25,6 +26,9 @@ typedef struct _ipt_entry_t{
 typedef struct{
 	ipt_entry_t *entries;
 	int size;
+	int num_valid_entries;
+
+	rwlock_t lock;
 }ipt_t;
 
 errcode_t ipt_init(ipt_t* ipt, int size);

@@ -104,6 +104,8 @@ void map_destroy(map_t* map)
 		free(map->keys);
 		free(map->values);
 	}
+	map->keys = NULL;
+	map->values = NULL;
 }
 
 #include "tests/map_tests.c"
