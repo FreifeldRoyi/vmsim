@@ -22,6 +22,8 @@ typedef struct _mm_t
 	bitmap_t bitmap;
 
 	rwlock_t lock;
+
+	void* orig_addr; //debug
 } mm_t;
 
 #define MM(x) ((mm_t *) (x))
@@ -30,7 +32,6 @@ typedef struct _mm_t
 #define MM_BITMAP(x) MM((x)) -> bitmap
 #define MM_NUM_OF_PAGES(x) MM((x)) -> npages
 #define MM_PAGE_SIZE(x) MM((x)) -> page_size
-#define MM_PCB_SIZE(x) MM((x)) -> process_block_size; //TODO not sure if needed
 
 /**
  * initializes the main memory
@@ -41,11 +42,29 @@ typedef struct _mm_t
  * @param mm - the pointer to the main memory to be allocated
  * @param npages - number of pages in the main memory
  * @param pagesize - size of each page
- * @param blocksize - size of each the process control block
  */
-errcode_t mm_init(mm_t* mm, int npages, int pagesize, int blocksize);
+errcode_t mm_init(mm_t* mm, int npages, int pagesize);
 
+/**
+ * gets a copy of a page already set in the main memory
+ * if succeeded ecSuccess will be returned
+ * ecFail otherwise
+ *
+ * @param mm - the main memory
+ * @param page - the page
+ * @param page_data - where to save the data
+ */
 errcode_t mm_get_page(mm_t* mm, int page, BYTE* page_data);
+
+/**
+ * resets a page inside the main memory
+ * ecSuccess will be returned if operation succeeded
+ * ecFail otherwise
+ *
+ * @param mm - the main memory
+ * @param page - the page to set
+ * @param page_data - the data to be set
+ */
 errcode_t mm_set_page(mm_t* mm, int page, BYTE* page_data);
 
 /**
