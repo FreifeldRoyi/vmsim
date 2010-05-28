@@ -1,5 +1,5 @@
 #include "cunit/cunit.h"
-#include "util/ui_util.h"
+#include "util/app_util.h"
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>

@@ -11,6 +11,8 @@ typedef int BOOL;
 
 typedef unsigned char BYTE;
 
+#define BYTE_SIZE (sizeof(BYTE) * 8)
+
 typedef enum {ecSuccess, ecFail, ecNotFound} errcode_t;
 
 typedef unsigned procid_t;

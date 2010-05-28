@@ -12,12 +12,12 @@
 
 static void print_ipt_entry(ipt_entry_t entry)
 {
-	if (!(entry.valid))
+	if (!(entry.page_data.valid))
 	{
-		procid_t pid = entry.addr.pid;
-		unsigned page_num = entry.addr.page;
-		BOOL dirty = entry.dirty;
-		BOOL aging_ref = entry.referenced;
+		procid_t pid = entry.page_data.addr.pid;
+		unsigned page_num = entry.page_data.addr.page;
+		BOOL dirty = entry.page_data.dirty;
+		BOOL aging_ref = entry.page_data.referenced;
 		int next = entry.next;
 		int prev = entry.prev;
 
@@ -29,15 +29,34 @@ static void print_ipt_entry(ipt_entry_t entry)
 	}
 }
 
+/**
+ * prints a binary representation of BYTEs
+ * with no new line char ("\n") at the end
+ */
 static void print_BYTE(BYTE* byte)
 {
-	//TODO what to print here???
-	printf("\n");
+	int i;
+
+	for (i = BYTE_SIZE - 1; i <= 0; --i)
+	{
+		if ((1 << i) & (*byte))
+			printf("1");
+		else
+			printf("0");
+	}
 }
 
 static void print_bitmap(bitmap_t* bitmap)
 {
-	//TODO what to print here???
+	int i;
+
+	for (i = 0; i < bitmap->size; ++i)
+	{
+		printf("[%d]: ", i);
+		print_BYTE(&bitmap->data[i]);
+		printf("\n");
+	}
+
 	printf("\n");
 }
 
@@ -58,14 +77,12 @@ void print_MM(mm_t* mm)
 {
 	int num_of_pages = MM_NUM_OF_PAGES(&mm);
 	int	page_size = MM_PAGE_SIZE(&mm);
-	int pcb_size = MM_PCB_SIZE(&mm); //TODO not sure if needed
 
 	printf("DATA: ");
 	print_BYTE(MM_DATA(&mm));
 
 	printf("NUM OF PAGES: %d\n", num_of_pages);
 	printf("PAGE SIZE: %d\n", page_size);
-	printf("PCB SIZE: %d\n",pcb_size); //TODO not sure if needed
 
 	printf("BITMAP: ");
 	print_bitmap(&MM_BITMAP(&mm));
@@ -97,6 +114,8 @@ BOOL load_app_data(char* file_name, app_data_t* app_data)
 
 	int err;
 
+	assert(app_data != NULL);
+
 	if (app_data->initialized)
 	{
 		printf("Data already initialized");
@@ -118,12 +137,23 @@ BOOL load_app_data(char* file_name, app_data_t* app_data)
 	fscanf(f, "NumOfProcessPages = %u", &APP_DATA_NUM_OF_PROC_PAGE(app_data));
 	fscanf(f, "ShiftClock = %u", &APP_DATA_SHIFT_CLOCK(app_data));
 
-	//TODO finish
+	disk_init(APP_DATA_DISK(app_data), n_page_disk, APP_DATA_PAGE_SIZE(app_data), APP_DATA_PAGE_SIZE(app_data)/* TODO block size maybe a different size??*/);
+	mm_init(APP_DATA_MM(app_data), n_page_mm, APP_DATA_PAGE_SIZE(app_data));
+	mmu_init(APP_DATA_MMU(app_data), APP_DATA_MM(app_data), APP_DATA_DISK(app_data));
+	//TODO if any more fields are added to the app_data struct, don't forget to handle here
 
 	fclose(f);
+
+	return TRUE;
 }
 
 void free_app_data(app_data_t* app_data)
 {
-	//TODO implement
+	mm_destroy(APP_DATA_MM(app_data));
+	disk_destroy(APP_DATA_DISK(app_data));
+	mmu_destroy(APP_DATA_MMU(app_data));
+
+	//TODO if any more fields are added to the app_data struct, don't forget to handle here
+
+	free(app_data);
 }
