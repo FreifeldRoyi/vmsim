@@ -35,10 +35,4 @@ typedef struct
 
 typedef unsigned phys_addr_t; //physical address
 
-typedef struct
-{
-	disk_addr_t disk_block_start;
-	unsigned disk_block_npages;
-}process_t;
-
 #endif /* VMSIM_TYPES_H_ */

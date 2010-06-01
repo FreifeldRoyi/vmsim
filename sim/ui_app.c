@@ -9,8 +9,6 @@
 
 #define UNUSED(_x) if ((_x) != (_x)) {(_x)=(_x);}
 
-#define BLOCK_SIZE 8 //TODO initial size.file reading doesn't have this info
-
 ui_cmd_t get_command()
 {
 	ui_cmd_t ret;
@@ -121,6 +119,60 @@ BOOL do_read(ui_cmd_t* cmd, app_data_t* app_data)
 				printf("Not enough or bad arguments. usage: read vAddr id amount");
 			}
 
+			read(params[0], params[1], 1,params[2], NULL);
+			//TODO supposed to use read function, but job description sux
+			//implement a function read(vaddr,amount) what about id???
+			to_return = TRUE;
+		}
+		else
+		{
+			to_return = FALSE;
+			printf("Not enough arguments");
+		}
+	}
+	else
+		to_return = FALSE;
+
+	return to_return;
+	//TODO test
+}
+
+BOOL do_loop_read(ui_cmd_t* cmd, app_data_t* app_data)
+{
+	BOOL to_return = FALSE;
+
+	unsigned params[4];
+
+	int err = 1;
+
+	int tok_count = 0;
+
+	char* token;
+
+	if (!APP_DATA_INIT(app_data))
+	{
+		if (strlen(cmd->param) != 0)
+		{
+			token = strtok(cmd->param, " ");
+			while (err > 0 && token != NULL && tok_count < 4)
+			{
+				err = sscanf(token, " %u ", &params[tok_count]);
+
+				if (err > 0)
+				{
+					++tok_count;
+					token = strtok(NULL," ");
+				}
+				else
+					to_return = FALSE;
+			}
+			if (tok_count < 4)
+			{
+				to_return = FALSE;
+				printf("Not enough or bad arguments. usage: loopRead vAddr id off amount");
+			}
+
+			read(params[0], params[1], params[2], params[3], NULL);
 			//TODO supposed to use read function, but job description sux
 			//implement a function read(vaddr,amount) what about id???
 			to_return = TRUE;
@@ -138,39 +190,125 @@ BOOL do_read(ui_cmd_t* cmd, app_data_t* app_data)
 	//TODO implement
 }
 
-BOOL do_loop_read(ui_cmd_t* cmd, app_data_t* app_data)
-{
-	if (!APP_DATA_INIT(app_data))
-	{
-		//print_MM(&APP_DATA_MM(app_data));
-		return TRUE;
-	}
-	else
-		return FALSE;
-	//TODO implement
-}
-
 BOOL do_read_to_file(ui_cmd_t* cmd, app_data_t* app_data)
 {
+	BOOL to_return = FALSE;
+
+	unsigned params[3];
+
+	int err = 1;
+
+	int tok_count = 0;
+
+	char* token;
+
 	if (!APP_DATA_INIT(app_data))
 	{
-		//print_MM(&APP_DATA_MM(app_data));
-		return TRUE;
+		if (strlen(cmd->param) != 0)
+		{
+			token = strtok(cmd->param, " ");
+			while (err > 0 && token != NULL && tok_count < 3) //read numbers first
+			{
+				err = sscanf(token, " %u ", &params[tok_count]);
+
+				if (err > 0)
+				{
+					++tok_count;
+					token = strtok(NULL," ");
+				}
+				else
+					to_return = FALSE;
+			}
+			if (tok_count < 4)
+			{
+				token = strtok(NULL," ");
+				if (token != NULL)
+				{
+					++tok_count;
+
+					read(params[0],params[1], -1, params[2], token);
+					//TODO supposed to use read function, but job description sux
+					//implement a function read(vaddr,amount) what about id???
+					to_return = TRUE;
+				}
+				else
+				{
+					to_return = FALSE;
+					printf("Not enough or bad arguments. usage: readToFile vAddr id amount filename");
+				}
+			}
+		}
+		else
+		{
+			to_return = FALSE;
+			printf("Not enough arguments");
+		}
 	}
 	else
-		return FALSE;
+		to_return = FALSE;
+
+	return to_return;
 	//TODO implement
 }
 
 BOOL do_loop_read_to_file(ui_cmd_t* cmd, app_data_t* app_data)
 {
+	BOOL to_return = FALSE;
+
+	unsigned params[4];
+
+	int err = 1;
+
+	int tok_count = 0;
+
+	char* token;
+
 	if (!APP_DATA_INIT(app_data))
 	{
-		//print_MM(&APP_DATA_MM(app_data));
-		return TRUE;
+		if (strlen(cmd->param) != 0)
+		{
+			token = strtok(cmd->param, " ");
+			while (err > 0 && token != NULL && tok_count < 4) //read numbers first
+			{
+				err = sscanf(token, " %u ", &params[tok_count]);
+
+				if (err > 0)
+				{
+					++tok_count;
+					token = strtok(NULL," ");
+				}
+				else
+					to_return = FALSE;
+			}
+			if (tok_count < 5)
+			{
+				token = strtok(NULL," ");
+				if (token != NULL)
+				{
+					++tok_count;
+
+					read(params[0],params[1],params[2],params[3],token);
+					//TODO supposed to use read function, but job description sux
+					//implement a function read(vaddr,amount) what about id???
+					to_return = TRUE;
+				}
+				else
+				{
+					to_return = FALSE;
+					printf("Not enough or bad arguments. usage: loopReadToFile vAddr id off amount filename");
+				}
+			}
+		}
+		else
+		{
+			to_return = FALSE;
+			printf("Not enough arguments");
+		}
 	}
 	else
-		return FALSE;
+		to_return = FALSE;
+
+	return to_return;
 	//TODO implement
 }
 
@@ -401,4 +539,5 @@ int app_main(int argc, char **argv)
 	return 0;
 }
 
+//TODO create lock for printing operations? - only UI thread is using printing..
 //TODO create a function for checking APP_DATA_INIT instead of the current situation
