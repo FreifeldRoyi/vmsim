@@ -155,13 +155,17 @@ errcode_t mmu_free_page(mmu_t* mmu, virt_addr_t page)
 
 errcode_t mmu_pin_page(	mmu_t* mmu, virt_addr_t page)
 {
+	/*NOTE: the INFO printouts here are required by the assignment.
+	 * */
 	ipt_lock_vaddr_write(&mmu->mem_ipt, page);
 	if (ipt_has_translation(&mmu->mem_ipt, page))
 	{
+		INFO2("IPT has a mapping for (%d:%d)\n", VIRT_ADDR_PID(page), VIRT_ADDR_PAGE(page));
 		return ecSuccess;
 	}
 	else
 	{
+		INFO2("No mapping for (%d:%d) - A pagefault has occured.\n", VIRT_ADDR_PID(page), VIRT_ADDR_PAGE(page));
 		return prm_pagefault(page);
 	}
 }
