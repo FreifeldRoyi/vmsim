@@ -4,19 +4,21 @@
 #include <string.h>
 #include <stdlib.h>
 
-/**int main()
+int main()
 {
-	add_queue_tests();
+/*	add_queue_tests();
 	add_bitmap_tests();
 	add_ipt_tests();
 	add_worker_thread_tests();
 	add_disk_tests();
+	add_map_tests();*/
+	add_mmu_tests();
 
 	cunit_run_suite();
 	cunit_destroy();
 	return 0;
-}*/
-
+}
+/*
 static char* new_alloc_strcat(char* dest, char* src)
 {
 	char* to_return = calloc(0,sizeof(dest) + sizeof(src) + 1);
@@ -44,6 +46,6 @@ int main()
 	printf("%s",s3);
 
 	return 0;
-}
+}*/
 
 
