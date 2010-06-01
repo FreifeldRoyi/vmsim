@@ -7,7 +7,7 @@
 
 #define BLOCK_SIZE 2
 #define NPAGES 11
-#define PAGESIZE 1024
+#define PAGESIZE 32
 #define NPROCS NPAGES/BLOCK_SIZE
 
 
