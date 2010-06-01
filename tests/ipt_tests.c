@@ -39,16 +39,18 @@ cunit_err_t test_ipt_multiple_add_remove()
 	ipt_t ipt;
 	virt_addr_t addr = {0,0};
 	phys_addr_t paddr = 0xFFFFFFFF;
+	phys_addr_t expected_paddr = 0;
 	int i;
 
-	ASSERT_EQUALS(ecSuccess, ipt_init(&ipt, 10));
+	ASSERT_EQUALS(ecSuccess, ipt_init(&ipt, NPAGES));
 
 	for (i=0; i<NPAGES*5; ++i)
 	{
 		ASSERT_EQUALS(ecSuccess, ipt_add(&ipt, addr));
 		ASSERT_EQUALS(ecSuccess, ipt_translate(&ipt, addr, &paddr));
-		ASSERT_EQUALS(0, paddr);
+		ASSERT_EQUALS(expected_paddr, paddr);
 		ASSERT_EQUALS(ecSuccess, ipt_remove(&ipt, addr));
+		expected_paddr = (expected_paddr + 1) % NPAGES;
 	}
 
 	ipt_destroy(&ipt);
