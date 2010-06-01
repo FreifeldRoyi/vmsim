@@ -99,13 +99,39 @@ cunit_err_t test_mmu_alloc_free_sanity()
 	}
 
 	mmu_destroy(&mmu);
+	mm_destroy(&mem);
 	disk_destroy(&disk);
-	mmu_destroy(&mmu);
 
 	return ceSuccess;
 }
 
 cunit_err_t test_mmu_alloc_free_multiple()
+{
+	mmu_t mmu;
+	mm_t mem;
+	disk_t disk;
+	virt_addr_t addr = {0,0};
+	int i;
+
+	ASSERT_EQUALS(ecSuccess, mm_init(&mem, MEM_NPAGES, PAGESIZE));
+	ASSERT_EQUALS(ecSuccess, disk_init(&disk,DISK_NPAGES, PAGESIZE, DISK_BLOCKSIZE));
+
+	ASSERT_EQUALS(ecSuccess, mmu_init(&mmu, &mem, &disk));
+
+	for (i=0; i< 5; ++i)
+	{
+		ASSERT_EQUALS(ecSuccess, mmu_alloc_multiple(&mmu, addr,MEM_NPAGES, 0));
+		ASSERT_EQUALS(ecSuccess, mmu_free_multiple(&mmu, addr, MEM_NPAGES));
+	}
+
+	mmu_destroy(&mmu);
+	mm_destroy(&mem);
+	disk_destroy(&disk);
+
+	return ceSuccess;
+}
+
+cunit_err_t test_mmu_alloc_read_free_multiple()
 {
 	mmu_t mmu;
 	mm_t mem;
@@ -131,9 +157,9 @@ cunit_err_t test_mmu_alloc_free_multiple()
 		ASSERT_EQUALS(ecSuccess, mmu_free_multiple(&mmu, addr, MEM_NPAGES));
 	}
 
+	mmu_destroy(&mmu);
 	mm_destroy(&mem);
 	disk_destroy(&disk);
-	mmu_destroy(&mmu);
 
 	return ceSuccess;
 }
@@ -242,15 +268,7 @@ cunit_err_t test_mmu_alloc_free_stress()
 
 cunit_err_t test_mmu_alloc_free_pagefault_stress()
 {
-	int i;
-	for (i=0;i<100; ++i)
-	{
-		if (do_test_mmu_alloc_free_stress(DISK_BLOCKSIZE) != ceSuccess)
-		{
-			return ceFail;
-		}
-	}
-	return ceSuccess;
+	return do_test_mmu_alloc_free_stress(DISK_BLOCKSIZE);
 }
 
 
@@ -336,7 +354,7 @@ cunit_err_t test_mmu_sync_to_backing_page()
 	ASSERT_EQUALS(ceSuccess, write_pattern(&mmu, addr, 0,PAGESIZE, buf));
 	ASSERT_EQUALS(ecSuccess, mmu_write(&mmu, addr, 0, PAGESIZE, buf));
 
-	ASSERT_EQUALS(ecSuccess, mmu_sync_to_backing_page_unlocked(&mmu, addr));
+	ASSERT_EQUALS(ecSuccess, mmu_sync_to_backing_page(&mmu, addr));
 
 	memset(buf, 0, ARRSIZE(buf));
 	ASSERT_EQUALS(ecSuccess, disk_get_page(&disk, disk_page, buf));
@@ -375,7 +393,7 @@ cunit_err_t test_mmu_sync_from_backing_page()
 	ASSERT_EQUALS(ceSuccess, write_pattern(&mmu, addr, 0,PAGESIZE, buf));
 	ASSERT_EQUALS(ecSuccess, disk_set_page(&disk, disk_page, buf));
 
-	ASSERT_EQUALS(ecSuccess, mmu_sync_from_backing_page_unlocked(&mmu, addr));
+	ASSERT_EQUALS(ecSuccess, mmu_sync_from_backing_page(&mmu, addr));
 
 	memset(buf, 0, ARRSIZE(buf));
 	ASSERT_EQUALS(ecSuccess, mmu_read(&mmu, addr, 0, PAGESIZE, buf));
@@ -394,6 +412,7 @@ void add_mmu_tests()
 {
 	ADD_TEST(test_mmu_alloc_free_sanity);
 	ADD_TEST(test_mmu_alloc_free_multiple);
+	ADD_TEST(test_mmu_alloc_read_free_multiple);
 	ADD_TEST(test_mmu_alloc_free_oom);
 	ADD_TEST(test_mmu_read_write_sanity);
 	ADD_TEST(test_mmu_read_write_pagefault);

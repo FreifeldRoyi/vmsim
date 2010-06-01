@@ -67,6 +67,7 @@ static void delete_prm_command(prm_command_t* cmd)
 static int oldest_page_idx = -1;
 static virt_addr_t oldest_page_vaddr;
 static unsigned oldest_page_age = 0;
+static virt_addr_t swap_target;
 
 static void get_oldest_page(phys_addr_t mem_page, page_data_t* page)
 {
@@ -78,7 +79,8 @@ static void get_oldest_page(phys_addr_t mem_page, page_data_t* page)
 		cur_idx = 0;
 	}
 
-	if ((age > oldest_page_idx) || (oldest_page_idx == -1))
+	if (((age > oldest_page_idx) || (oldest_page_idx == -1))&&
+		(!VIRT_ADDR_EQ(swap_target, page->addr)))
 	{
 		oldest_page_idx = cur_idx;
 		oldest_page_age = age;
@@ -86,10 +88,12 @@ static void get_oldest_page(phys_addr_t mem_page, page_data_t* page)
 	}
 }
 
-static virt_addr_t get_page_to_swap(mmu_t* mmu)
+static virt_addr_t get_page_to_swap(mmu_t* mmu, virt_addr_t page_to_load)
 {
 	oldest_page_idx = -1;
+	swap_target = page_to_load;
 	mmu_for_each_mem_page(mmu, get_oldest_page);
+	assert (!VIRT_ADDR_EQ(page_to_load, oldest_page_vaddr));
 	return oldest_page_vaddr;
 }
 
@@ -108,14 +112,8 @@ static void push_command(prm_command_t* cmd)
 
 static void prm_swap_out(mmu_t* mmu, virt_addr_t page)
 {
-	phys_addr_t mem_page;
-
-	mmu_pin_page(mmu, page, &mem_page);
-
-	mmu_sync_to_backing_page_unlocked(mmu, page);
-	mmu_unmap_page_unlocked(mmu, page);
-
-//	mmu_unpin_page(mmu, vaddr); no need. unmapping the page also unpins it.
+	mmu_sync_to_backing_page(mmu, page);
+	assert( mmu_unmap_page_unlocked(mmu, page) == ecSuccess);
 }
 
 static BOOL prm_thread_func(void* arg)
@@ -145,19 +143,30 @@ static BOOL prm_thread_func(void* arg)
 
 	addr = cmd->addr;
 
-//	DEBUG("Locking MMU\n");
-//	mmu_block_alloc_free(mmu); pagefaults happen from read/write context where allocation is blocked anyway
-	errcode = mmu_map_page(mmu, addr);
-	if (errcode != ecSuccess) //no free pages in memory, swap a page out.
+	DEBUG2("swap in (%d:%d)\n", VIRT_ADDR_PID(addr), VIRT_ADDR_PAGE(addr));
+
+	mmu_block_alloc_free(mmu);
+	errcode = mmu_map_page_unlocked(mmu, addr); //the vaddr to swap in is already locked
+	while (errcode != ecSuccess) //no free pages in memory, swap a page out.
 	{
-		vaddr_to_swap = get_page_to_swap(mmu);
+		phys_addr_t mem_page;
+		DEBUG("Swapping in required.\n");
+		vaddr_to_swap = get_page_to_swap(mmu, addr);
+		DEBUG2("Chose (%d:%d) to swap out.\n",VIRT_ADDR_PID(vaddr_to_swap), VIRT_ADDR_PAGE(vaddr_to_swap));
 		prm_swap_out(mmu, vaddr_to_swap);
-		errcode = mmu_map_page(mmu, addr);
-		assert(errcode == ecSuccess);//if after swapping out we have no free pages, something's wrong.
+		DEBUG("Swapped out.\n");
+		errcode = mmu_map_page_unlocked(mmu, addr);
+		/*if after swapping out we have no free pages, maybe a concurrent alloc
+		 * caught the page we freed. We have to try again.
+		 */
+
+		//FOR DEBUGGING
+		ipt_translate(&mmu->mem_ipt, addr, &mem_page);
+		DEBUG1("Mapped new page at %d\n", mem_page);
 	}
 
-	mmu_sync_from_backing_page_unlocked(mmu, addr);
-//	mmu_release_alloc_free(mmu);
+	mmu_sync_from_backing_page(mmu, addr);
+	mmu_release_alloc_free(mmu);
 	DEBUG("Released MMU\n");
 
 	pthread_mutex_lock(&prm_mutex);
@@ -171,7 +180,7 @@ static BOOL prm_thread_func(void* arg)
 errcode_t prm_init(mmu_t* mmu)
 {
 	errcode_t errcode;
-	INFO("PRM starting\n");
+	DEBUG("PRM starting\n");
 	pthread_mutex_init(&prm_mutex,NULL);
 	pthread_mutex_init(&prm_queue_mutex,NULL);
 	pthread_cond_init(&prm_queue_condvar, NULL);
@@ -213,7 +222,7 @@ errcode_t prm_pagefault(virt_addr_t addr)
 
 void prm_destroy()
 {
-	INFO("PRM exiting\n");
+	DEBUG("PRM exiting\n");
 	worker_thread_stop(&prm_thread);
 	worker_thread_destroy(&prm_thread);
 	assert(queue_size(prm_queue) == 0);
@@ -222,5 +231,5 @@ void prm_destroy()
 	pthread_cond_destroy(&prm_queue_condvar);
 	pthread_cond_destroy(&prm_condvar);
 	queue_destroy(prm_queue);
-	INFO("PRM exited\n");
+	DEBUG("PRM exited\n");
 }

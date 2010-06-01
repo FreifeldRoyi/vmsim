@@ -3,6 +3,7 @@
 
 #include "util/vmsim_types.h"
 #include "util/rwlock.h"
+#include "util/queue.h"
 
 typedef enum {refNone, refRead, refWrite} ipt_ref_t;
 
@@ -12,6 +13,8 @@ typedef struct
 	BOOL dirty;
 	BOOL referenced;
 	BOOL valid;
+
+	int users;
 
 	unsigned extra_data;
 }page_data_t;
@@ -23,10 +26,21 @@ typedef struct _ipt_entry_t{
 	int prev;
 }ipt_entry_t;
 
+typedef struct {
+
+	int ipt_idx;
+
+	rwlock_t lock;
+
+}hat_entry_t;
+
 typedef struct{
-	ipt_entry_t *entries;
+	ipt_entry_t* entries;
+	hat_entry_t* hat;
 	int size;
 	int num_valid_entries;
+
+	struct _queue_t* free_pages;
 
 	rwlock_t lock;
 }ipt_t;
@@ -36,6 +50,11 @@ errcode_t ipt_init(ipt_t* ipt, int size);
 BOOL ipt_has_translation(ipt_t* ipt, virt_addr_t addr);
 BOOL ipt_is_dirty(ipt_t* ipt, virt_addr_t addr);
 BOOL ipt_is_referenced(ipt_t* ipt, virt_addr_t addr);
+
+void ipt_lock_vaddr_read(ipt_t* ipt, virt_addr_t addr);
+void ipt_lock_vaddr_write(ipt_t* ipt, virt_addr_t addr);
+void ipt_unlock_vaddr_read(ipt_t* ipt, virt_addr_t addr);
+void ipt_unlock_vaddr_write(ipt_t* ipt, virt_addr_t addr);
 
 errcode_t ipt_reference(ipt_t* ipt, virt_addr_t addr, ipt_ref_t reftype);
 errcode_t ipt_translate(ipt_t* ipt, virt_addr_t addr, phys_addr_t* paddr);

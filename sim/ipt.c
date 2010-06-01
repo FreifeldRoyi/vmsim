@@ -18,6 +18,74 @@ static int ipt_hash(ipt_t* ipt, virt_addr_t addr)
 	return (VIRT_ADDR_PID(addr) * VIRT_ADDR_PAGE(addr)) % ipt->size;
 }
 
+static int ipt_hat_idx_of(ipt_t* ipt, virt_addr_t addr)
+{
+	return ipt->hat[ipt_hash(ipt, addr)].ipt_idx;
+}
+
+void ipt_lock_vaddr_read(ipt_t* ipt, virt_addr_t addr)
+{
+	rwlock_acquire_read(&ipt->hat[ipt_hash(ipt, addr)].lock);
+}
+
+void ipt_lock_vaddr_write(ipt_t* ipt, virt_addr_t addr)
+{
+	rwlock_acquire_write(&ipt->hat[ipt_hash(ipt, addr)].lock);
+}
+
+void ipt_unlock_vaddr_read(ipt_t* ipt, virt_addr_t addr)
+{
+	rwlock_release_read(&ipt->hat[ipt_hash(ipt, addr)].lock);
+}
+
+void ipt_unlock_vaddr_write(ipt_t* ipt, virt_addr_t addr)
+{
+	rwlock_release_write(&ipt->hat[ipt_hash(ipt, addr)].lock);
+}
+
+static void ipt_set_hat(ipt_t* ipt, virt_addr_t addr, int idx)
+{
+	ipt->hat[ipt_hash(ipt, addr)].ipt_idx = idx;
+}
+
+static int ipt_get_next_free_entry(ipt_t* ipt)
+{
+	int ret;
+	WRITE_START(ipt);
+	if (queue_size(ipt->free_pages) == 0)
+	{
+		ret = IPT_INVALID;
+	}
+	else
+	{
+		ret = (int)queue_pop(ipt->free_pages);
+	}
+	WRITE_END(ipt);
+	return ret;
+}
+
+static int get_vaddr_idx(ipt_t* ipt,virt_addr_t addr)
+{
+	int idx = ipt_hat_idx_of(ipt, addr);
+	while ( (idx != -1) &&
+			!VIRT_ADDR_EQ(ipt->entries[idx].page_data.addr, addr))
+	{
+		assert(ipt->entries[idx].page_data.valid);
+		idx = ipt->entries[idx].next;
+	}
+
+	if (idx == -1) //we traversed the hashlist and no entry was found
+	{
+		return IPT_INVALID;
+	}
+/*
+	if (!ipt->entries[idx].page_data.valid)
+	{
+		return IPT_INVALID;
+	}*/
+	return idx;
+}
+
 errcode_t ipt_init(ipt_t* ipt, int size)
 {
 	int i;
@@ -27,6 +95,12 @@ errcode_t ipt_init(ipt_t* ipt, int size)
 	{
 		return ecFail;
 	}
+	ipt->hat = calloc(sizeof(hat_entry_t), size);
+	if (ipt->hat == NULL)
+	{
+		return ecFail;
+	}
+	ipt->free_pages = queue_init();
 	ipt->size = size;
 	ipt->num_valid_entries = 0;
 	if (rwlock_init(&ipt->lock) != ecSuccess)
@@ -38,48 +112,13 @@ errcode_t ipt_init(ipt_t* ipt, int size)
 	{
 		ipt->entries[i].next =
 			ipt->entries[i].prev = IPT_INVALID;
+		ipt->hat[i].ipt_idx = IPT_INVALID;
+		rwlock_init(&ipt->hat[i].lock);
+		queue_push(ipt->free_pages, (void*)i);
 	}
 
 	DEBUG1("Created IPT %p\n", ipt->entries);
 	return ecSuccess;
-}
-
-static int get_vaddr_idx(ipt_t* ipt,virt_addr_t addr)
-{
-	int idx = ipt_hash(ipt, addr);
-	if (ipt->entries[idx].page_data.valid)
-	{
-		while ( (idx != IPT_INVALID) &&
-				(!VIRT_ADDR_EQ(ipt->entries[idx].page_data.addr, addr))
-				)
-		{
-			assert(ipt->entries[idx].page_data.valid);//invalid entry inside a hash list.
-			idx = ipt->entries[idx].next;
-		}
-
-		if (idx != -1)
-		{
-			DEBUG1("\nidx %d\n", idx);
-			return idx;
-		}
-	}
-	/*We didn't find addr in its hash list.
-	 * But maybe it was inserted to the wrong place in the table because the appropriate
-	 *   place for it was taken by some addr with the wrong hash value.
-	 *   so we'll try a linear search now.
-	 * */
-
-	for (idx = 0; idx < ipt->size; ++idx)
-	{
-		if ((VIRT_ADDR_EQ(ipt->entries[idx].page_data.addr, addr))&&
-				(ipt->entries[idx].page_data.valid))
-		{
-			DEBUG1("\nlinear idx %d\n", idx);
-			return idx;
-		}
-	}
-
-	return -1;
 }
 
 static void init_ipt_slot(ipt_t* ipt, int idx,virt_addr_t addr, int next, int prev)
@@ -96,7 +135,12 @@ static void dump_list(ipt_t* ipt)
 {
 	int i;
 
-	printf("IPT Dump:(%d valid entries)\nidx|vaddr|prev|next|valid\n", ipt->num_valid_entries);
+	printf("HAT Dump:\nidx|ipt_idx\n");
+	for (i=0; i<ipt->size; ++i)
+	{
+		printf("%3d|%d\n", i, ipt->hat[i].ipt_idx);
+	}
+	printf("\n\nIPT Dump:(%d valid entries)\nidx|vaddr|prev|next|valid\n", ipt->num_valid_entries);
 	for (i=0; i<ipt->size; ++i)
 	{
 		printf("%3d|(%d:%d)|%4d|%4d|%s\n", 	i,
@@ -110,29 +154,7 @@ static void dump_list(ipt_t* ipt)
 
 BOOL ipt_has_translation_unlocked(ipt_t* ipt, virt_addr_t addr)
 {
-	int idx;
-
-	idx= get_vaddr_idx(ipt, addr);
-
-	if (idx == IPT_INVALID)
-	{
-		DEBUG("\nget_vaddr_idx returned IPT_INVALID\n");
-		return FALSE;
-	}
-
-	if (!ipt->entries[idx].page_data.valid)
-	{
-		DEBUG("\nget_vaddr_idx returned an invalid entry\n");
-		return FALSE;
-	}
-
-	if (!VIRT_ADDR_EQ(ipt->entries[idx].page_data.addr, addr))
-	{
-		DEBUG("\nget_vaddr_idx returned an entry with the wrong vaddr\n");
-		return FALSE;
-	}
-
-	return TRUE;
+	return get_vaddr_idx(ipt, addr) != IPT_INVALID;
 }
 
 BOOL ipt_has_translation(ipt_t* ipt, virt_addr_t addr)
@@ -183,17 +205,7 @@ errcode_t ipt_reference(ipt_t* ipt, virt_addr_t addr, ipt_ref_t reftype)
 
 errcode_t ipt_translate(ipt_t* ipt, virt_addr_t addr, phys_addr_t* paddr)
 {
-	READ_START(ipt);
-	if (!ipt_has_translation_unlocked(ipt, addr))
-	{
-		READ_END(ipt);
-		return ecFail;
-	}
-
 	*paddr = get_vaddr_idx(ipt, addr);
-	assert(ipt->entries[*paddr].page_data.valid);
-
-	READ_END(ipt);
 	return ecSuccess;
 }
 
@@ -206,123 +218,93 @@ errcode_t ipt_reverse_translate(ipt_t* ipt, phys_addr_t paddr, virt_addr_t* vadd
 	return ecSuccess;
 }
 
-static errcode_t do_add(ipt_t* ipt, virt_addr_t addr)
+static int ipt_hash_list_last_element(ipt_t* ipt, virt_addr_t addr)
 {
-	int idx = ipt_hash(ipt, addr);
-	int prev_idx, next_idx;
+	int idx = ipt_hat_idx_of(ipt, addr);
+	int prev_idx = IPT_INVALID;
 
-	//if we don't to walk the hash list, just initialize to proper slot and return.
-	if (!ipt->entries[idx].page_data.valid)
+	while (idx != IPT_INVALID)
 	{
-		init_ipt_slot(ipt, idx, addr, IPT_INVALID, IPT_INVALID);
-		DEBUG3("(%d:%d) added to slot %d\n", VIRT_ADDR_PID(addr), VIRT_ADDR_PAGE(addr), idx);
-		return ecSuccess;
+		prev_idx = idx;
+		idx = ipt->entries[idx].next;
 	}
 
-	idx = 0;
-	//find the next available slot
-	while ( (idx < ipt->size) && (ipt->entries[idx].page_data.valid))
-	{
-		++idx;
-	}
-
-	if (idx == ipt->size)
-	{
-		return ecFail;
-	}
-
-	//we'll add the new mapping to the head of the list(one item after the first, since we can't move the first).
-	//this has 3 reasons:
-	//1. this is a newly-loaded page and will therefore probably be accessed really soon.
-	//2. this will make the ipt_add operation independent of hash list length
-	//3. i'm lazy.
-
-	prev_idx = ipt_hash(ipt, addr); //first item in the list
-	next_idx = ipt->entries[prev_idx].next; //second item in the list
-
-	init_ipt_slot(ipt, idx, addr, next_idx, prev_idx);
-	ipt->entries[prev_idx].next = idx;
-	if (next_idx != IPT_INVALID)
-	{
-		ipt->entries[next_idx].prev = idx;
-	}
-
-	DEBUG3("(%d:%d) added to slot %d\n", VIRT_ADDR_PID(addr), VIRT_ADDR_PAGE(addr), idx);
-
-//	dump_list(ipt);
-	return ecSuccess;
+	return prev_idx;
 }
 
 errcode_t ipt_add(ipt_t* ipt, virt_addr_t addr)
 {
-	errcode_t errcode;
-	WRITE_START(ipt);
-	assert(!ipt_has_translation_unlocked(ipt, addr));
-	DEBUG2("%d:%d\n", VIRT_ADDR_PID(addr), VIRT_ADDR_PAGE(addr));
+	int tail_idx, new_idx;
 
-	errcode = do_add(ipt, addr);
-	if (errcode == ecSuccess)
+
+	//first, allocate a new entry in the IPT
+	new_idx = ipt_get_next_free_entry(ipt);
+	if (new_idx == IPT_INVALID)
 	{
-		++ipt->num_valid_entries;
+		//free pages list is empty. no room in the IPT.
+		return ecFail;
 	}
 
-	WRITE_END(ipt);
-	return errcode;
+	//now add the new IPT entry to the HAT/hashlist as needed
+	tail_idx = ipt_hash_list_last_element(ipt, addr);
+	if (tail_idx == IPT_INVALID)
+	{
+		//no hash list for this vaddr. create a new one.
+		ipt_set_hat(ipt, addr, new_idx);
+	}
+	else
+	{
+		//insert the new item at the end of the hash list
+		ipt->entries[tail_idx].next = new_idx;
+	}
+
+	//and finally, initialize the new entry.
+	init_ipt_slot(ipt, new_idx, addr, -1, tail_idx);
+
+	DEBUG3("Adding (%d:%d) at %d\n", VIRT_ADDR_PID(addr), VIRT_ADDR_PAGE(addr), new_idx);
+
+//	dump_list(ipt);
+
+	return ecSuccess;
 }
 
 errcode_t ipt_remove(ipt_t* ipt, virt_addr_t addr)
 {
-	int idx, next_idx, prev_idx;
-	WRITE_START(ipt);
-	assert(ipt_has_translation_unlocked(ipt, addr));
-
-	DEBUG3("ipt_remove: %p removing %d:%d\n",ipt, VIRT_ADDR_PID(addr), VIRT_ADDR_PAGE(addr));
-
-//	dump_list(ipt);
+	int idx, prev_idx, next_idx;
 
 	idx = get_vaddr_idx(ipt, addr);
+	if (idx == IPT_INVALID)
+	{
+		return ecNotFound;
+	}
+
 	prev_idx = ipt->entries[idx].prev;
 	next_idx = ipt->entries[idx].next;
 
+	//we were at the head of the hashlist, need to update the HAT.
 	if (prev_idx == IPT_INVALID)
 	{
-
-		if (next_idx != IPT_INVALID)
-		{
-			/*this is the first element in a hashlist.
-			 * since we want subsequent searches to find the right hashlist, we'll move
-			 * the second element to this index, since this is the expected index for
-			 * this vaddr.
-			 */
-			ipt->entries[idx] = ipt->entries[next_idx];
-			ipt->entries[idx].prev = IPT_INVALID;
-			ipt->entries[next_idx].page_data.valid = FALSE;
-
-			if (ipt->entries[idx].next != IPT_INVALID)
-			{
-				ipt->entries[ipt->entries[idx].next].prev = idx;
-			}
-		}
-		else
-		{
-			//just delete this element
-			ipt->entries[idx].page_data.valid = FALSE;
-		}
+		ipt_set_hat(ipt, addr, next_idx);
 	}
-	else
+
+	//remove the item from the hashlist
+	if (next_idx != IPT_INVALID)
+	{
+		ipt->entries[next_idx].prev = prev_idx;
+	}
+	if (prev_idx != IPT_INVALID)
 	{
 		ipt->entries[prev_idx].next = next_idx;
-		if ( next_idx != IPT_INVALID)
-		{
-			ipt->entries[next_idx].prev = prev_idx;
-		}
-		ipt->entries[idx].page_data.valid = FALSE;
 	}
 
-	--ipt->num_valid_entries;
+	ipt->entries[idx].page_data.valid = FALSE;
+
+	queue_push(ipt->free_pages, (void*)idx);
+
+	DEBUG3("Removing (%d:%d) from %d\n", VIRT_ADDR_PID(addr), VIRT_ADDR_PAGE(addr), idx);
+
 //	dump_list(ipt);
 
-	WRITE_END(ipt);
 	return ecSuccess;
 }
 
@@ -343,11 +325,17 @@ errcode_t ipt_for_each_entry(ipt_t* ipt, void (*func)(phys_addr_t, page_data_t*)
 
 void ipt_destroy(ipt_t* ipt)
 {
+	int i;
 	WRITE_START(ipt);
 	DEBUG1("Destroying IPT %p\n", ipt->entries);
 	free(ipt->entries);
 	ipt->entries = NULL;
 	WRITE_END(ipt);
+
+	for (i=0; i < ipt->size; ++i)
+	{
+		rwlock_destroy(&ipt->hat[i].lock);
+	}
 
 	rwlock_destroy(&ipt->lock);
 }

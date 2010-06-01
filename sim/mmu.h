@@ -18,8 +18,6 @@ typedef struct
 
 	pthread_mutex_t diskmap_lock;
 
-	rwlock_t ipt_lock;
-	pthread_mutex_t* page_frame_locks;
 }mmu_t;
 
 errcode_t mmu_init(mmu_t* mmu, mm_t* mem, disk_t* disk);
@@ -40,13 +38,13 @@ errcode_t mmu_for_each_mem_page(mmu_t* mmu, void (*func)(phys_addr_t, page_data_
 
 virt_addr_t mmu_phys_to_virt(mmu_t* mmu, phys_addr_t phys_addr);
 
-errcode_t mmu_sync_to_backing_page_unlocked(mmu_t* mmu, virt_addr_t page);
-errcode_t mmu_sync_from_backing_page_unlocked(mmu_t* mmu, virt_addr_t page);
+errcode_t mmu_sync_to_backing_page(mmu_t* mmu, virt_addr_t page);
+errcode_t mmu_sync_from_backing_page(mmu_t* mmu, virt_addr_t page);
 
 void mmu_block_alloc_free(mmu_t* mmu);
 void mmu_release_alloc_free(mmu_t* mmu);
 
-errcode_t mmu_pin_page(mmu_t* mmu, virt_addr_t vaddr, phys_addr_t* mem_page);
+errcode_t mmu_pin_page(mmu_t* mmu, virt_addr_t vaddr);
 errcode_t mmu_unpin_page(mmu_t* mmu, virt_addr_t vaddr);
 
 void mmu_destroy(mmu_t* mmu);
