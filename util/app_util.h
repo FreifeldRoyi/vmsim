@@ -23,9 +23,6 @@ typedef struct
 	unsigned num_of_proc_page;
 	unsigned shift_clock;
 
-	mm_t* main_memory;
-	disk_t* disk;
-
 	mmu_t* mmu;
 	//TODO fill up later on
 } app_data_t;
@@ -37,8 +34,6 @@ typedef struct
 #define APP_DATA_SHIFT_CLOCK(x) APP_DATA((x)) -> shift_clock
 #define APP_DATA_INIT(x) APP_DATA((x)) -> initialized
 #define APP_DATA_MMU(x) APP_DATA((x)) -> mmu
-#define APP_DATA_MM(x) APP_DATA((x)) -> main_memory
-#define APP_DATA_DISK(x) APP_DATA((x)) -> disk
 /**
  * prints the given MM unit
  */
@@ -64,6 +59,18 @@ int create_process();
  * 	and the UI will not return until this job is finished
  */
 void del_process(int id);
+
+/**
+ * finds process with the given ID.
+ *
+ * if file_name is NULL, prints to stdout
+ * else prints to specified file
+ * offset > 0 => loop
+ * offset < 0 => normal read
+ */
+void read_handle(int vaddr, int id, int off,int amount, char* file_name);
+
+void write(int vaddr, int id, char* s, int amount);
 
 /**
  *prints the registers of the aging algorithm
