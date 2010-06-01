@@ -40,7 +40,7 @@ errcode_t mm_init(mm_t* mm, int npages, int pagesize)
 	bitmap_init(&MM_BITMAP(mm), npages);
 	rwlock_init(&MM_LOCK(mm));
 
-	return TRUE;
+	return ecSuccess;
 }
 
 errcode_t mm_get_page(mm_t* mm, int page, BYTE* page_data)

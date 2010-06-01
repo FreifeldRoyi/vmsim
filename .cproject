@@ -36,7 +36,7 @@
 <inputType id="cdt.managedbuild.tool.gnu.c.compiler.input.1513725177" superClass="cdt.managedbuild.tool.gnu.c.compiler.input"/>
 </tool>
 <tool id="cdt.managedbuild.tool.gnu.c.linker.base.1441796321" name="GCC C Linker" superClass="cdt.managedbuild.tool.gnu.c.linker.base">
-<option id="gnu.c.link.option.libs.1045079330" superClass="gnu.c.link.option.libs" valueType="libs">
+<option id="gnu.c.link.option.libs.1045079330" name="Libraries (-l)" superClass="gnu.c.link.option.libs" valueType="libs">
 <listOptionValue builtIn="false" value="pthread"/>
 </option>
 <inputType id="cdt.managedbuild.tool.gnu.c.linker.input.1803291726" superClass="cdt.managedbuild.tool.gnu.c.linker.input">
