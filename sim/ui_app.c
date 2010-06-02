@@ -119,7 +119,7 @@ BOOL do_read(ui_cmd_t* cmd, app_data_t* app_data)
 				printf("Not enough or bad arguments. usage: read vAddr id amount");
 			}
 
-			read(params[0], params[1], 1,params[2], NULL);
+			sim_read(params[0], params[1], 1,params[2], NULL);
 			//TODO supposed to use read function, but job description sux
 			//implement a function read(vaddr,amount) what about id???
 			to_return = TRUE;
@@ -172,7 +172,7 @@ BOOL do_loop_read(ui_cmd_t* cmd, app_data_t* app_data)
 				printf("Not enough or bad arguments. usage: loopRead vAddr id off amount");
 			}
 
-			read(params[0], params[1], params[2], params[3], NULL);
+			sim_read(params[0], params[1], params[2], params[3], NULL);
 			//TODO supposed to use read function, but job description sux
 			//implement a function read(vaddr,amount) what about id???
 			to_return = TRUE;
@@ -226,7 +226,7 @@ BOOL do_read_to_file(ui_cmd_t* cmd, app_data_t* app_data)
 				{
 					++tok_count;
 
-					read(params[0],params[1], -1, params[2], token);
+					sim_read(params[0],params[1], -1, params[2], token);
 					//TODO supposed to use read function, but job description sux
 					//implement a function read(vaddr,amount) what about id???
 					to_return = TRUE;
@@ -287,7 +287,7 @@ BOOL do_loop_read_to_file(ui_cmd_t* cmd, app_data_t* app_data)
 				{
 					++tok_count;
 
-					read(params[0],params[1],params[2],params[3],token);
+					sim_read(params[0],params[1],params[2],params[3],token);
 					//TODO supposed to use read function, but job description sux
 					//implement a function read(vaddr,amount) what about id???
 					to_return = TRUE;
@@ -352,7 +352,7 @@ BOOL do_print_MM(ui_cmd_t* cmd, app_data_t* app_data)
 {
 	if (!APP_DATA_INIT(app_data))
 	{
-		print_MM(APP_DATA_MM(app_data));
+		print_MM(APP_DATA_MMU(app_data) -> mem);
 		return TRUE;
 	}
 	else

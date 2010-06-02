@@ -14,8 +14,6 @@
 #include "util/queue.h"
 /****************************************definitions*******************************/
 
-typedef unsigned proc_id; //process id
-
 #define READ_START(_lock) rwlock_acquire_read(_lock)
 #define WRITE_START(_lock) rwlock_acquire_write(_lock)
 #define READ_END(_lock) rwlock_release_read(_lock)
@@ -23,7 +21,7 @@ typedef unsigned proc_id; //process id
 
 typedef struct
 {
-	proc_id pid;
+	procid_t pid;
 
 	int disk_block_start;
 	int block_size; //can later be removed
@@ -56,7 +54,7 @@ typedef struct
 
 	unsigned max_num_of_proc;
 
-	rwlock_t lock;
+	pthread_mutex_t lock;
 } proc_cont_t; //process container
 
 #define PROC_CONT(x) ((proc_cont_t *) (x))
@@ -94,7 +92,7 @@ typedef struct
 typedef struct
 {
 	proc_cont_t* cont;
-	int curr_pid;
+	procid_t curr_pid;
 } func_arg;
 
 #define ARG(x) ((func_arg *) (x))
@@ -134,7 +132,7 @@ void post_destroy(post_t* post);
  * memory on MM
  * and memory on DISK
  */
-errcode_t process_dealloc(proc_cont_t* prc, proc_id pid);
+errcode_t process_dealloc(proc_cont_t* prc, procid_t pid);
 
 
 #endif /* PCB_UTIL_H_ */

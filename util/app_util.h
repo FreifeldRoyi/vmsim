@@ -68,7 +68,7 @@ void del_process(int id);
  * offset > 0 => loop
  * offset < 0 => normal read
  */
-void read_handle(int vaddr, int id, int off,int amount, char* file_name);
+void sim_read(int vaddr, int id, int off,int amount, char* file_name);
 
 void write(int vaddr, int id, char* s, int amount);
 
