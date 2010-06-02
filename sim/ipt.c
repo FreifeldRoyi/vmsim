@@ -22,25 +22,13 @@ static int ipt_hat_idx_of(ipt_t* ipt, virt_addr_t addr)
 	return ipt->hat[ipt_hash(ipt, addr)].ipt_idx;
 }
 
-void ipt_lock_vaddr_read(ipt_t* ipt, virt_addr_t addr)
-{
-	rwlock_acquire_read(&ipt->hat_lock);
-	rwlock_acquire_read(&ipt->hat[ipt_hash(ipt, addr)].lock);
-}
-
-void ipt_lock_vaddr_write(ipt_t* ipt, virt_addr_t addr)
+void ipt_lock_vaddr(ipt_t* ipt, virt_addr_t addr)
 {
 	rwlock_acquire_read(&ipt->hat_lock);
 	rwlock_acquire_write(&ipt->hat[ipt_hash(ipt, addr)].lock);
 }
 
-void ipt_unlock_vaddr_read(ipt_t* ipt, virt_addr_t addr)
-{
-	rwlock_release_read(&ipt->hat[ipt_hash(ipt, addr)].lock);
-	rwlock_release_read(&ipt->hat_lock);
-}
-
-void ipt_unlock_vaddr_write(ipt_t* ipt, virt_addr_t addr)
+void ipt_unlock_vaddr(ipt_t* ipt, virt_addr_t addr)
 {
 	rwlock_release_write(&ipt->hat[ipt_hash(ipt, addr)].lock);
 	rwlock_release_read(&ipt->hat_lock);
@@ -213,13 +201,7 @@ errcode_t ipt_reference(ipt_t* ipt, virt_addr_t addr, ipt_ref_t reftype)
 errcode_t ipt_translate(ipt_t* ipt, virt_addr_t addr, phys_addr_t* paddr)
 {
 	*paddr = get_vaddr_idx(ipt, addr);
-	return ecSuccess;
-}
-
-errcode_t ipt_reverse_translate(ipt_t* ipt, phys_addr_t paddr, virt_addr_t* vaddr)
-{
-	*vaddr = ipt->entries[paddr].page_data.addr;
-
+	assert(*paddr != IPT_INVALID);
 	return ecSuccess;
 }
 
