@@ -10,6 +10,8 @@
 #include <malloc.h>
 #include <assert.h>
 
+#define BLOCK_SIZE 8 //TODO initial size.file reading doesn't have this info
+
 static void print_ipt_entry(ipt_entry_t entry)
 {
 	if (!(entry.page_data.valid))
@@ -33,7 +35,7 @@ static void print_ipt_entry(ipt_entry_t entry)
  * prints a binary representation of BYTEs
  * with no new line char ("\n") at the end
  */
-static void print_BYTE(BYTE* byte)
+static void print_BYTE_binary(BYTE* byte)
 {
 	int i;
 
@@ -46,14 +48,14 @@ static void print_BYTE(BYTE* byte)
 	}
 }
 
-static void print_bitmap(bitmap_t* bitmap)
+static void print_bitmap_binary(bitmap_t* bitmap)
 {
 	int i;
 
 	for (i = 0; i < bitmap->size; ++i)
 	{
 		printf("[%d]: ", i);
-		print_BYTE(&bitmap->data[i]);
+		print_BYTE_binary(&bitmap->data[i]);
 		printf("\n");
 	}
 
@@ -79,31 +81,13 @@ void print_MM(mm_t* mm)
 	int	page_size = MM_PAGE_SIZE(&mm);
 
 	printf("DATA: ");
-	print_BYTE(MM_DATA(&mm));
+	print_BYTE_binary(MM_DATA(&mm));
 
 	printf("NUM OF PAGES: %d\n", num_of_pages);
 	printf("PAGE SIZE: %d\n", page_size);
 
 	printf("BITMAP: ");
-	print_bitmap(&MM_BITMAP(&mm));
-}
-
-int create_process()
-{
-	//TODO implement and check h file if parameters were added
-}
-
-void del_process(int pid)
-{
-	//TODO implement
-}
-
-static BOOL input_ok(int err)
-{
-	if (err <= 0 || err == EOF)
-		return FALSE;
-
-	return TRUE;
+	print_bitmap_binary(&MM_BITMAP(&mm));
 }
 
 BOOL load_app_data(char* file_name, app_data_t* app_data)
@@ -111,8 +95,8 @@ BOOL load_app_data(char* file_name, app_data_t* app_data)
 	FILE* f;
 	unsigned n_page_mm;
 	unsigned n_page_disk;
-
-	int err;
+	mm_t* mm = NULL;
+	disk_t* disk = NULL;
 
 	assert(app_data != NULL);
 
@@ -136,13 +120,11 @@ BOOL load_app_data(char* file_name, app_data_t* app_data)
 	fscanf(f, "NumOfPagesInDisk = %u", &n_page_disk);
 	fscanf(f, "NumOfProcessPages = %u", &APP_DATA_NUM_OF_PROC_PAGE(app_data));
 	fscanf(f, "ShiftClock = %u", &APP_DATA_SHIFT_CLOCK(app_data));
+	//input correctness isn't checked
 
-	disk_init(APP_DATA_DISK(app_data), n_page_disk, APP_DATA_PAGE_SIZE(app_data), APP_DATA_PAGE_SIZE(app_data)/* TODO block size maybe a different size??*/);
-	mm_init(APP_DATA_MM(app_data), n_page_mm, APP_DATA_PAGE_SIZE(app_data));
-	mmu_init(APP_DATA_MMU(app_data), APP_DATA_MM(app_data), APP_DATA_DISK(app_data), APP_DATA_SHIFT_CLOCK(app_data));
 	disk_init(disk, n_page_disk, APP_DATA_PAGE_SIZE(app_data),  APP_DATA_PAGE_SIZE(app_data)/* TODO block size maybe a different size??*/);
 	mm_init(mm, n_page_mm, APP_DATA_PAGE_SIZE(app_data));
-	mmu_init(APP_DATA_MMU(app_data), mm, disk, , APP_DATA_SHIFT_CLOCK(app_data));
+	mmu_init(APP_DATA_MMU(app_data), mm, disk, APP_DATA_SHIFT_CLOCK(app_data));
 	//TODO if any more fields are added to the app_data struct, don't forget to handle here
 
 	fclose(f);
@@ -152,11 +134,53 @@ BOOL load_app_data(char* file_name, app_data_t* app_data)
 
 void free_app_data(app_data_t* app_data)
 {
-	mm_destroy(APP_DATA_MM(app_data));
-	disk_destroy(APP_DATA_DISK(app_data));
+	mm_destroy(APP_DATA_MMU(app_data) -> mem);
+	disk_destroy(APP_DATA_MMU(app_data) -> disk);
 	mmu_destroy(APP_DATA_MMU(app_data));
 
 	//TODO if any more fields are added to the app_data struct, don't forget to handle here
 
 	free(app_data);
+}
+
+int create_process()
+{
+	//TODO implement and check h file if parameters were added
+	return 0;
+}
+
+void del_process(int pid)
+{
+	//TODO implement
+}
+
+static void read_and_print(int vaddr, int id, int amount)
+{
+	//TODO implement
+}
+
+static void loop_read_and_print(int vaddr, int id, int off, int amount)
+{
+	assert(amount > 0);
+	//TODO implement
+}
+
+static void f_read_and_print(int vaddr, int id, int amount, int fd)
+{
+
+}
+
+void sim_read(int vaddr, int id, int off,int amount, char* file_name)
+{
+	//TODO implement
+}
+
+static void loop_write(int vaddr, int id, char* s)
+{
+	//TODO implement
+}
+
+void write(int vaddr, int id, char* s, int amount)
+{
+	//TODO implement
 }
