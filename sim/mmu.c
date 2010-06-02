@@ -42,7 +42,7 @@ errcode_t mmu_init(mmu_t* mmu, mm_t* mem, disk_t* disk, int aging_freq)
 	return ecSuccess;
 }
 
-errcode_t mmu_map_page_unlocked(mmu_t* mmu, virt_addr_t addr)
+errcode_t mmu_map_page(mmu_t* mmu, virt_addr_t addr)
 {
 	errcode_t errcode;
 
@@ -52,14 +52,47 @@ errcode_t mmu_map_page_unlocked(mmu_t* mmu, virt_addr_t addr)
 	return errcode;
 }
 
-errcode_t mmu_map_page(mmu_t* mmu, virt_addr_t addr)
+static errcode_t mmu_alloc_page(mmu_t* mmu, virt_addr_t addr, int backing_page)
 {
 	errcode_t errcode;
-	ipt_lock_vaddr_write(&mmu->mem_ipt, addr);
-	errcode = mmu_map_page_unlocked(mmu, addr);
-	ipt_unlock_vaddr_write(&mmu->mem_ipt, addr);
+
+	ipt_lock_vaddr(&mmu->mem_ipt, addr);
+	mmu_block_alloc_free(mmu);
+
+	DEBUG2("Allocating (%d:%d)\n", VIRT_ADDR_PID(addr), VIRT_ADDR_PAGE(addr));
+
+	errcode = mmu_map_page(mmu, addr);
+	//we don't care about the return code - if there was not enough room in the
+	//memory, we'll map the page only to the disk, and on the next access to it
+	//it will be swapped in.
+	assert(map_get(&mmu->disk_map, &addr, NULL) == ecNotFound);
+	errcode = map_set(&mmu->disk_map, &addr, &backing_page);
+	DEBUG2("Added disk mapping: (%d:%d)\n", VIRT_ADDR_PID(addr), VIRT_ADDR_PAGE(addr));
+	assert(errcode == ecSuccess);
+
+	mmu_release_alloc_free(mmu);
+	ipt_unlock_vaddr(&mmu->mem_ipt, addr);
 	return errcode;
 }
+
+static errcode_t mmu_free_page(mmu_t* mmu, virt_addr_t page)
+{
+	DEBUG2("Freeing (%d:%d)\n", VIRT_ADDR_PID(page), VIRT_ADDR_PAGE(page));
+
+	ipt_lock_vaddr(&mmu->mem_ipt, page);
+	mmu_block_alloc_free(mmu);
+
+	assert(map_get(&mmu->disk_map, &page, NULL)!=ecNotFound);
+
+	mmu_unmap_page(mmu, page);//we don't check the return value because it's OK if the page isn't in memory.
+	map_remove(&mmu->disk_map, &page);
+
+	mmu_release_alloc_free(mmu);
+	ipt_unlock_vaddr(&mmu->mem_ipt, page);
+
+	return ecSuccess;
+}
+
 
 errcode_t mmu_alloc_multiple(mmu_t* mmu, virt_addr_t first_addr, int npages, int first_backing_page)
 {
@@ -109,30 +142,7 @@ errcode_t mmu_free_multiple(mmu_t* mmu, virt_addr_t first_addr, int npages)
 	return ecSuccess;
 }
 
-errcode_t mmu_alloc_page(mmu_t* mmu, virt_addr_t addr, int backing_page)
-{
-	errcode_t errcode;
-
-	ipt_lock_vaddr_write(&mmu->mem_ipt, addr);
-	mmu_block_alloc_free(mmu);
-
-	DEBUG2("Allocating (%d:%d)\n", VIRT_ADDR_PID(addr), VIRT_ADDR_PAGE(addr));
-
-	errcode = mmu_map_page_unlocked(mmu, addr);
-	//we don't care about the return code - if there was not enough room in the
-	//memory, we'll map the page only to the disk, and on the next access to it
-	//it will be swapped in.
-	assert(map_get(&mmu->disk_map, &addr, NULL) == ecNotFound);
-	errcode = map_set(&mmu->disk_map, &addr, &backing_page);
-	DEBUG2("Added disk mapping: (%d:%d)\n", VIRT_ADDR_PID(addr), VIRT_ADDR_PAGE(addr));
-	assert(errcode == ecSuccess);
-
-	mmu_release_alloc_free(mmu);
-	ipt_unlock_vaddr_write(&mmu->mem_ipt, addr);
-	return errcode;
-}
-
-errcode_t mmu_unmap_page_unlocked(mmu_t* mmu, virt_addr_t page)
+errcode_t mmu_unmap_page(mmu_t* mmu, virt_addr_t page)
 {
 	errcode_t errcode;
 	DEBUG2("Unmapping %d:%d\n", VIRT_ADDR_PID(page), VIRT_ADDR_PAGE(page));
@@ -143,29 +153,11 @@ errcode_t mmu_unmap_page_unlocked(mmu_t* mmu, virt_addr_t page)
 	return errcode;
 }
 
-errcode_t mmu_free_page(mmu_t* mmu, virt_addr_t page)
-{
-	DEBUG2("Freeing (%d:%d)\n", VIRT_ADDR_PID(page), VIRT_ADDR_PAGE(page));
-
-	ipt_lock_vaddr_write(&mmu->mem_ipt, page);
-	mmu_block_alloc_free(mmu);
-
-	assert(map_get(&mmu->disk_map, &page, NULL)!=ecNotFound);
-
-	mmu_unmap_page_unlocked(mmu, page);//we don't check the return value because it's OK if the page isn't in memory.
-	map_remove(&mmu->disk_map, &page);
-
-	mmu_release_alloc_free(mmu);
-	ipt_unlock_vaddr_write(&mmu->mem_ipt, page);
-
-	return ecSuccess;
-}
-
-errcode_t mmu_pin_page(	mmu_t* mmu, virt_addr_t page)
+static errcode_t mmu_pin_page(	mmu_t* mmu, virt_addr_t page)
 {
 	/*NOTE: the INFO printouts here are required by the assignment.
 	 * */
-	ipt_lock_vaddr_write(&mmu->mem_ipt, page);
+	ipt_lock_vaddr(&mmu->mem_ipt, page);
 	if (ipt_has_translation(&mmu->mem_ipt, page))
 	{
 		INFO2("IPT has a mapping for (%d:%d)\n", VIRT_ADDR_PID(page), VIRT_ADDR_PAGE(page));
@@ -178,10 +170,10 @@ errcode_t mmu_pin_page(	mmu_t* mmu, virt_addr_t page)
 	}
 }
 
-errcode_t mmu_unpin_page(	mmu_t* mmu,
+static errcode_t mmu_unpin_page(	mmu_t* mmu,
 						virt_addr_t page)
 {
-	ipt_unlock_vaddr_write(&mmu->mem_ipt, page);
+	ipt_unlock_vaddr(&mmu->mem_ipt, page);
 	return ecSuccess;
 }
 
@@ -329,12 +321,6 @@ errcode_t mmu_for_each_mem_page(mmu_t* mmu, void (*func)(phys_addr_t, page_data_
 	return ipt_for_each_entry(&mmu->mem_ipt, func);
 }
 
-virt_addr_t mmu_phys_to_virt(mmu_t* mmu, phys_addr_t phys_addr)
-{
-	virt_addr_t vaddr;
-	ipt_reverse_translate(&mmu->mem_ipt, phys_addr, &vaddr);
-	return vaddr;
-}
 
 void mmu_block_alloc_free(mmu_t* mmu)
 {

@@ -113,8 +113,11 @@ static void push_command(prm_command_t* cmd)
 
 static void prm_swap_out(mmu_t* mmu, virt_addr_t page)
 {
-	mmu_sync_to_backing_page(mmu, page);
-	assert( mmu_unmap_page_unlocked(mmu, page) == ecSuccess);
+	errcode_t errcode;
+	errcode = mmu_sync_to_backing_page(mmu, page);
+	assert( errcode == ecSuccess);
+	errcode = mmu_unmap_page(mmu, page);
+	assert( errcode == ecSuccess);
 }
 
 static BOOL prm_thread_func(void* arg)
@@ -147,7 +150,7 @@ static BOOL prm_thread_func(void* arg)
 	DEBUG2("swap in (%d:%d)\n", VIRT_ADDR_PID(addr), VIRT_ADDR_PAGE(addr));
 
 	mmu_block_alloc_free(mmu);
-	errcode = mmu_map_page_unlocked(mmu, addr); //the vaddr to swap in is already locked
+	errcode = mmu_map_page(mmu, addr); //the vaddr to swap in is already locked
 	while (errcode != ecSuccess) //no free pages in memory, swap a page out.
 	{
 		phys_addr_t mem_page;
@@ -156,7 +159,7 @@ static BOOL prm_thread_func(void* arg)
 		DEBUG2("Chose (%d:%d) to swap out.\n",VIRT_ADDR_PID(vaddr_to_swap), VIRT_ADDR_PAGE(vaddr_to_swap));
 		prm_swap_out(mmu, vaddr_to_swap);
 		DEBUG("Swapped out.\n");
-		errcode = mmu_map_page_unlocked(mmu, addr);
+		errcode = mmu_map_page(mmu, addr);
 		/*if after swapping out we have no free pages, maybe a concurrent alloc
 		 * caught the page we freed. We have to try again.
 		 */
