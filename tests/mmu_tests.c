@@ -2,6 +2,7 @@
 #include "util/worker_thread.h"
 #include <string.h>
 #include <unistd.h>
+#include <time.h>
 
 
 #define MEM_NPAGES 11
@@ -213,30 +214,23 @@ alloc_free_func(void* arg)
 }
 
 static cunit_err_t
-do_test_mmu_alloc_free_stress(int alloc_size)
+do_test_mmu_alloc_free_stress(mmu_t* mmu, int alloc_size)
 {
-	mmu_t mmu;
-	mm_t mem;
-	disk_t disk;
 	worker_thread_t threads[NPROCS];
 	alloc_free_thread_params_t params[NPROCS];
 	int i;
 
-	ASSERT_EQUALS(ecSuccess, mm_init(&mem, MEM_NPAGES, PAGESIZE));
-	ASSERT_EQUALS(ecSuccess, disk_init(&disk,DISK_NPAGES, PAGESIZE, DISK_BLOCKSIZE));
+	ASSERT_EQUALS(ecSuccess, prm_init(mmu));
 
-	ASSERT_EQUALS(ecSuccess, prm_init(&mmu));
-
-	ASSERT_EQUALS(ecSuccess, mmu_init(&mmu, &mem, &disk));
 
 	for (i=0; i<NPROCS; ++i)
 	{
 		worker_thread_create(&threads[i],alloc_free_func);
 		params[i].pid = i;
-		params[i].mmu = &mmu;
+		params[i].mmu = mmu;
 		params[i].nallocs = 0;
 		params[i].alloc_size = alloc_size;
-		disk_alloc_process_block(&disk, &params[i].disk_page);
+		disk_alloc_process_block(mmu->disk, &params[i].disk_page);
 	}
 
 	for (i=0; i<NPROCS; ++i)
@@ -254,23 +248,90 @@ do_test_mmu_alloc_free_stress(int alloc_size)
 	}
 
 	prm_destroy();
-	mmu_destroy(&mmu);
-	disk_destroy(&disk);
-	mm_destroy(&mem);
+
 
 	return ceSuccess;
 }
 
 cunit_err_t test_mmu_alloc_free_stress()
 {
-	return do_test_mmu_alloc_free_stress(1);
+	mmu_t mmu;
+	mm_t mem;
+	disk_t disk;
+	cunit_err_t err;
+
+	ASSERT_EQUALS(ecSuccess, mm_init(&mem, MEM_NPAGES, PAGESIZE));
+	ASSERT_EQUALS(ecSuccess, disk_init(&disk,DISK_NPAGES, PAGESIZE, DISK_BLOCKSIZE));
+	ASSERT_EQUALS(ecSuccess, mmu_init(&mmu, &mem, &disk));
+
+	err = do_test_mmu_alloc_free_stress(&mmu, 1);
+
+	mmu_destroy(&mmu);
+	disk_destroy(&disk);
+	mm_destroy(&mem);
+
+	return err;
 }
 
 cunit_err_t test_mmu_alloc_free_pagefault_stress()
 {
-	return do_test_mmu_alloc_free_stress(DISK_BLOCKSIZE);
+	mmu_t mmu;
+	mm_t mem;
+	disk_t disk;
+	cunit_err_t err;
+
+	ASSERT_EQUALS(ecSuccess, mm_init(&mem, MEM_NPAGES, PAGESIZE));
+	ASSERT_EQUALS(ecSuccess, disk_init(&disk,DISK_NPAGES, PAGESIZE, DISK_BLOCKSIZE));
+	ASSERT_EQUALS(ecSuccess, mmu_init(&mmu, &mem, &disk));
+
+	err = do_test_mmu_alloc_free_stress(&mmu, DISK_BLOCKSIZE);
+
+	mmu_destroy(&mmu);
+	disk_destroy(&disk);
+	mm_destroy(&mem);
+
+	return err;
 }
 
+BOOL hat_locking_func(void* arg)
+{
+	mmu_t* mmu = arg;
+	struct timespec ts;
+	ts.tv_sec = 0;
+	ts.tv_nsec = 500000;
+
+	rwlock_acquire_write(&mmu->mem_ipt.hat_lock);
+	nanosleep(&ts,NULL);
+	rwlock_release_write(&mmu->mem_ipt.hat_lock);
+
+	return FALSE;
+}
+
+cunit_err_t test_mmu_alloc_free_pagefault_hatlock_stress()
+{
+	mmu_t mmu;
+	mm_t mem;
+	disk_t disk;
+	worker_thread_t hat_locking_thread;
+	cunit_err_t err;
+
+	ASSERT_EQUALS(ecSuccess, mm_init(&mem, MEM_NPAGES, PAGESIZE));
+	ASSERT_EQUALS(ecSuccess, disk_init(&disk,DISK_NPAGES, PAGESIZE, DISK_BLOCKSIZE));
+	ASSERT_EQUALS(ecSuccess, mmu_init(&mmu, &mem, &disk));
+
+	ASSERT_EQUALS(ecSuccess, worker_thread_create(&hat_locking_thread, &hat_locking_func));
+	ASSERT_EQUALS(ecSuccess, worker_thread_start(&hat_locking_thread, &mmu));
+
+	err = do_test_mmu_alloc_free_stress(&mmu, DISK_BLOCKSIZE);
+
+	ASSERT_EQUALS(ecSuccess, worker_thread_stop(&hat_locking_thread));
+
+	mmu_destroy(&mmu);
+	disk_destroy(&disk);
+	mm_destroy(&mem);
+
+	return err;
+}
 
 cunit_err_t test_mmu_read_write_sanity()
 {
@@ -420,4 +481,5 @@ void add_mmu_tests()
 	ADD_TEST(test_mmu_sync_from_backing_page);
 	ADD_TEST(test_mmu_alloc_free_stress);
 	ADD_TEST(test_mmu_alloc_free_pagefault_stress);
+	ADD_TEST(test_mmu_alloc_free_pagefault_hatlock_stress);
 }
