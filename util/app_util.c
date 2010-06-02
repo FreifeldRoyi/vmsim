@@ -139,7 +139,7 @@ BOOL load_app_data(char* file_name, app_data_t* app_data)
 
 	disk_init(APP_DATA_DISK(app_data), n_page_disk, APP_DATA_PAGE_SIZE(app_data), APP_DATA_PAGE_SIZE(app_data)/* TODO block size maybe a different size??*/);
 	mm_init(APP_DATA_MM(app_data), n_page_mm, APP_DATA_PAGE_SIZE(app_data));
-	mmu_init(APP_DATA_MMU(app_data), APP_DATA_MM(app_data), APP_DATA_DISK(app_data));
+	mmu_init(APP_DATA_MMU(app_data), APP_DATA_MM(app_data), APP_DATA_DISK(app_data), APP_DATA_SHIFT_CLOCK(app_data));
 	//TODO if any more fields are added to the app_data struct, don't forget to handle here
 
 	fclose(f);

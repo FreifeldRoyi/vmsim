@@ -10,6 +10,8 @@
 #define DISK_BLOCKSIZE 10
 #define PAGESIZE 32
 
+#define NEVER_AGE -1
+
 static cunit_err_t
 write_pattern(mmu_t* mmu, virt_addr_t addr, unsigned offset, unsigned nbytes, BYTE* buf)
 {
@@ -91,7 +93,7 @@ cunit_err_t test_mmu_alloc_free_sanity()
 	ASSERT_EQUALS(ecSuccess, mm_init(&mem, MEM_NPAGES, PAGESIZE));
 	ASSERT_EQUALS(ecSuccess, disk_init(&disk,DISK_NPAGES, PAGESIZE, DISK_BLOCKSIZE));
 
-	ASSERT_EQUALS(ecSuccess, mmu_init(&mmu, &mem, &disk));
+	ASSERT_EQUALS(ecSuccess, mmu_init(&mmu, &mem, &disk, NEVER_AGE));
 
 	for (i=0; i< MEM_NPAGES * 5; ++i)
 	{
@@ -117,7 +119,7 @@ cunit_err_t test_mmu_alloc_free_multiple()
 	ASSERT_EQUALS(ecSuccess, mm_init(&mem, MEM_NPAGES, PAGESIZE));
 	ASSERT_EQUALS(ecSuccess, disk_init(&disk,DISK_NPAGES, PAGESIZE, DISK_BLOCKSIZE));
 
-	ASSERT_EQUALS(ecSuccess, mmu_init(&mmu, &mem, &disk));
+	ASSERT_EQUALS(ecSuccess, mmu_init(&mmu, &mem, &disk, NEVER_AGE));
 
 	for (i=0; i< 5; ++i)
 	{
@@ -144,7 +146,7 @@ cunit_err_t test_mmu_alloc_read_free_multiple()
 	ASSERT_EQUALS(ecSuccess, mm_init(&mem, MEM_NPAGES, PAGESIZE));
 	ASSERT_EQUALS(ecSuccess, disk_init(&disk,DISK_NPAGES, PAGESIZE, DISK_BLOCKSIZE));
 
-	ASSERT_EQUALS(ecSuccess, mmu_init(&mmu, &mem, &disk));
+	ASSERT_EQUALS(ecSuccess, mmu_init(&mmu, &mem, &disk, NEVER_AGE));
 
 	for (i=0; i< 5; ++i)
 	{
@@ -174,7 +176,7 @@ cunit_err_t test_mmu_alloc_free_oom()
 	ASSERT_EQUALS(ecSuccess, mm_init(&mem, MEM_NPAGES, PAGESIZE));
 	ASSERT_EQUALS(ecSuccess, disk_init(&disk,DISK_NPAGES, PAGESIZE, DISK_BLOCKSIZE));
 
-	ASSERT_EQUALS(ecSuccess, mmu_init(&mmu, &mem, &disk));
+	ASSERT_EQUALS(ecSuccess, mmu_init(&mmu, &mem, &disk, NEVER_AGE));
 
 	ASSERT_EQUALS(ceSuccess, alloc_junk_pages(&mmu, DISK_NPAGES));
 	ASSERT_EQUALS(ceSuccess, free_junk_pages(&mmu, DISK_NPAGES));
@@ -262,7 +264,7 @@ cunit_err_t test_mmu_alloc_free_stress()
 
 	ASSERT_EQUALS(ecSuccess, mm_init(&mem, MEM_NPAGES, PAGESIZE));
 	ASSERT_EQUALS(ecSuccess, disk_init(&disk,DISK_NPAGES, PAGESIZE, DISK_BLOCKSIZE));
-	ASSERT_EQUALS(ecSuccess, mmu_init(&mmu, &mem, &disk));
+	ASSERT_EQUALS(ecSuccess, mmu_init(&mmu, &mem, &disk, NEVER_AGE));
 
 	err = do_test_mmu_alloc_free_stress(&mmu, 1);
 
@@ -282,7 +284,7 @@ cunit_err_t test_mmu_alloc_free_pagefault_stress()
 
 	ASSERT_EQUALS(ecSuccess, mm_init(&mem, MEM_NPAGES, PAGESIZE));
 	ASSERT_EQUALS(ecSuccess, disk_init(&disk,DISK_NPAGES, PAGESIZE, DISK_BLOCKSIZE));
-	ASSERT_EQUALS(ecSuccess, mmu_init(&mmu, &mem, &disk));
+	ASSERT_EQUALS(ecSuccess, mmu_init(&mmu, &mem, &disk, NEVER_AGE));
 
 	err = do_test_mmu_alloc_free_stress(&mmu, DISK_BLOCKSIZE);
 
@@ -317,7 +319,7 @@ cunit_err_t test_mmu_alloc_free_pagefault_hatlock_stress()
 
 	ASSERT_EQUALS(ecSuccess, mm_init(&mem, MEM_NPAGES, PAGESIZE));
 	ASSERT_EQUALS(ecSuccess, disk_init(&disk,DISK_NPAGES, PAGESIZE, DISK_BLOCKSIZE));
-	ASSERT_EQUALS(ecSuccess, mmu_init(&mmu, &mem, &disk));
+	ASSERT_EQUALS(ecSuccess, mmu_init(&mmu, &mem, &disk, NEVER_AGE));
 
 	ASSERT_EQUALS(ecSuccess, worker_thread_create(&hat_locking_thread, &hat_locking_func));
 	ASSERT_EQUALS(ecSuccess, worker_thread_start(&hat_locking_thread, &mmu));
@@ -343,7 +345,7 @@ cunit_err_t test_mmu_read_write_sanity()
 	ASSERT_EQUALS(ecSuccess, mm_init(&mem, MEM_NPAGES, PAGESIZE));
 	ASSERT_EQUALS(ecSuccess, disk_init(&disk,DISK_NPAGES, PAGESIZE, DISK_BLOCKSIZE));
 
-	ASSERT_EQUALS(ecSuccess, mmu_init(&mmu, &mem, &disk));
+	ASSERT_EQUALS(ecSuccess, mmu_init(&mmu, &mem, &disk, NEVER_AGE));
 
 	ASSERT_EQUALS(ecSuccess, mmu_alloc_page(&mmu, addr, 0));
 
@@ -366,7 +368,7 @@ cunit_err_t test_mmu_read_write_pagefault()
 	ASSERT_EQUALS(ecSuccess, mm_init(&mem, MEM_NPAGES, PAGESIZE));
 	ASSERT_EQUALS(ecSuccess, disk_init(&disk,DISK_NPAGES, PAGESIZE, DISK_BLOCKSIZE));
 
-	ASSERT_EQUALS(ecSuccess, mmu_init(&mmu, &mem, &disk));
+	ASSERT_EQUALS(ecSuccess, mmu_init(&mmu, &mem, &disk, NEVER_AGE));
 
 	ASSERT_EQUALS(ecSuccess, prm_init(&mmu));
 
@@ -406,7 +408,7 @@ cunit_err_t test_mmu_sync_to_backing_page()
 
 	ASSERT_EQUALS(ecSuccess, disk_alloc_process_block(&disk, &disk_page));
 
-	ASSERT_EQUALS(ecSuccess, mmu_init(&mmu, &mem, &disk));
+	ASSERT_EQUALS(ecSuccess, mmu_init(&mmu, &mem, &disk, NEVER_AGE));
 
 	VIRT_ADDR_PAGE(addr) = 0;
 	VIRT_ADDR_PID(addr) = 9999;
@@ -445,7 +447,7 @@ cunit_err_t test_mmu_sync_from_backing_page()
 
 	ASSERT_EQUALS(ecSuccess, disk_alloc_process_block(&disk, &disk_page));
 
-	ASSERT_EQUALS(ecSuccess, mmu_init(&mmu, &mem, &disk));
+	ASSERT_EQUALS(ecSuccess, mmu_init(&mmu, &mem, &disk, NEVER_AGE));
 
 	VIRT_ADDR_PAGE(addr) = 0;
 	VIRT_ADDR_PID(addr) = 9999;
@@ -469,6 +471,119 @@ cunit_err_t test_mmu_sync_from_backing_page()
 	return ceSuccess;
 }
 
+#define AGING_FREQ 5
+
+cunit_err_t test_mmu_aging_sanity()
+{
+	mmu_t mmu;
+	mm_t mem;
+	disk_t disk;
+	phys_addr_t paddr;
+	virt_addr_t addr = {0,0};
+	BYTE buf[PAGESIZE];
+	int i;
+
+	ASSERT_EQUALS(ecSuccess, mm_init(&mem, MEM_NPAGES, PAGESIZE));
+	ASSERT_EQUALS(ecSuccess, disk_init(&disk,DISK_NPAGES, PAGESIZE, DISK_BLOCKSIZE));
+	ASSERT_EQUALS(ecSuccess, mmu_init(&mmu, &mem, &disk, AGING_FREQ));
+
+	ASSERT_EQUALS(ecSuccess, aging_daemon_start(&mmu));
+
+	ASSERT_EQUALS(ecSuccess, mmu_alloc_page(&mmu, addr, 0));
+
+	for (i=0; i < AGING_FREQ * 3; ++i)
+	{
+		ASSERT_EQUALS(ecSuccess, mmu_read(&mmu, addr, 0, PAGESIZE, buf));
+	}
+
+	//we expect the aging daemon to run 3 times, and this page was referenced in all 3.
+	//this means it's uppermost 4 bits should be 1
+	ASSERT_EQUALS(ecSuccess, ipt_translate(&mmu.mem_ipt, addr, &paddr));
+	ASSERT_EQUALS(0xF0000000, mmu.mem_ipt.entries[paddr].page_data.page_age);
+
+	ASSERT_EQUALS(ecSuccess, mmu_free_page(&mmu, addr));
+
+	aging_daemon_stop();
+
+	mmu_destroy(&mmu);
+	mm_destroy(&mem);
+	disk_destroy(&disk);
+
+	return ceSuccess;
+}
+
+cunit_err_t test_mmu_aging_2pages_rw()
+{
+	mmu_t mmu;
+	mm_t mem;
+	disk_t disk;
+	phys_addr_t paddr;
+	virt_addr_t addr1 = {0,0}, addr2 = {1,1};
+	BYTE buf[PAGESIZE];
+	int i;
+
+	ASSERT_EQUALS(ecSuccess, mm_init(&mem, MEM_NPAGES, PAGESIZE));
+	ASSERT_EQUALS(ecSuccess, disk_init(&disk,DISK_NPAGES, PAGESIZE, DISK_BLOCKSIZE));
+	ASSERT_EQUALS(ecSuccess, mmu_init(&mmu, &mem, &disk, AGING_FREQ));
+
+	ASSERT_EQUALS(ecSuccess, aging_daemon_start(&mmu));
+
+	ASSERT_EQUALS(ecSuccess, mmu_alloc_page(&mmu, addr1, 0));
+	ASSERT_EQUALS(ecSuccess, mmu_alloc_page(&mmu, addr2, 1));
+
+	for (i=0; i < AGING_FREQ * 3; ++i)
+	{
+		ASSERT_EQUALS(ecSuccess, mmu_read(&mmu, addr1, 0, PAGESIZE, buf));
+	}
+
+	for (i=0; i < AGING_FREQ * 3; ++i)
+	{
+		ASSERT_EQUALS(ecSuccess, mmu_write(&mmu, addr2, 0, PAGESIZE, buf));
+	}
+
+
+	ASSERT_EQUALS(ecSuccess, ipt_translate(&mmu.mem_ipt, addr1, &paddr));
+	ASSERT_EQUALS(0xF0000000>>3, mmu.mem_ipt.entries[paddr].page_data.page_age);
+
+	ASSERT_EQUALS(ecSuccess, ipt_translate(&mmu.mem_ipt, addr2, &paddr));
+	ASSERT_EQUALS(0xe2000000, mmu.mem_ipt.entries[paddr].page_data.page_age);
+
+	ASSERT_EQUALS(ecSuccess, mmu_free_page(&mmu, addr1));
+	ASSERT_EQUALS(ecSuccess, mmu_free_page(&mmu, addr2));
+
+	aging_daemon_stop();
+
+	mmu_destroy(&mmu);
+	mm_destroy(&mem);
+	disk_destroy(&disk);
+
+	return ceSuccess;
+}
+
+cunit_err_t test_mmu_alloc_free_pagefault_aging_stress()
+{
+	mmu_t mmu;
+	mm_t mem;
+	disk_t disk;
+	cunit_err_t err;
+
+	ASSERT_EQUALS(ecSuccess, mm_init(&mem, MEM_NPAGES, PAGESIZE));
+	ASSERT_EQUALS(ecSuccess, disk_init(&disk,DISK_NPAGES, PAGESIZE, DISK_BLOCKSIZE));
+	ASSERT_EQUALS(ecSuccess, mmu_init(&mmu, &mem, &disk, AGING_FREQ));
+
+	aging_daemon_start(&mmu);
+
+	err = do_test_mmu_alloc_free_stress(&mmu, DISK_BLOCKSIZE);
+
+	aging_daemon_stop(&mmu);
+
+	mmu_destroy(&mmu);
+	disk_destroy(&disk);
+	mm_destroy(&mem);
+
+	return err;
+}
+
 void add_mmu_tests()
 {
 	ADD_TEST(test_mmu_alloc_free_sanity);
@@ -479,7 +594,10 @@ void add_mmu_tests()
 	ADD_TEST(test_mmu_read_write_pagefault);
 	ADD_TEST(test_mmu_sync_to_backing_page);
 	ADD_TEST(test_mmu_sync_from_backing_page);
+	ADD_TEST(test_mmu_aging_sanity);
+	ADD_TEST(test_mmu_aging_2pages_rw);
 	ADD_TEST(test_mmu_alloc_free_stress);
 	ADD_TEST(test_mmu_alloc_free_pagefault_stress);
 	ADD_TEST(test_mmu_alloc_free_pagefault_hatlock_stress);
+	ADD_TEST(test_mmu_alloc_free_pagefault_aging_stress);
 }
