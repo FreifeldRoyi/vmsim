@@ -120,6 +120,26 @@ errcode_t process_destroy(proc_cont_t* proc_cont, int id)
 
 errcode_t proc_cont_destroy(proc_cont_t* proc_cont)
 {
+	errcode_t to_return;
+	int i;
+	pthread_mutex_lock(&PROC_CONT_LOCK(proc_cont));
+
+	if (proc_cont == NULL)
+	{
+		pthread_mutex_unlock(&PROC_CONT_LOCK(proc_cont));
+		return ecNotFound;
+	}
+
+	for (i = 0; i < PROC_CONT_N_PROC(proc_cont); ++i)
+	{
+
+		if ((&PROC_CONT_SPEC_PROC(proc_cont,i) != NULL) ||
+				!(PROC_CONT_SPEC_PROC(proc_cont,i).junk))
+		{
+			pthread_mutex_unlock(&PROC_CONT_LOCK(proc_cont));
+			return ecFail;
+		}
+	}
 	//TODO implement
 	// man don't forget to delete pages from MM and DISK
 }
@@ -134,7 +154,6 @@ BOOL process_func(void* arg)
 
 	proc_cont_t* cont = ARG_PROC(arguments);
 	process_t* this_proc = &PROC_CONT_SPEC_PROC(cont,ARG_PID(arguments));
-
 
 	BOOL exit = PROC_DEL(this_proc);
 
@@ -189,5 +208,9 @@ BOOL process_func(void* arg)
 		post_destroy(post);
 		post = NULL;
 	}
+
+	process_dealloc(cont, arguments->curr_pid);
+
+	return TRUE;
 	//TODO implement
 }

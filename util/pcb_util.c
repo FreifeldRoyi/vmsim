@@ -68,7 +68,7 @@ void post_destroy(post_t* post)
 
 /****************************************process functions*******************************/
 
-errcode_t process_dealloc(proc_cont_t* proc_cont, proc_id pid)
+errcode_t process_dealloc(proc_cont_t* proc_cont, procid_t pid)
 {
 	//TODO implement
 	// man don't forget to delete pages from MM and DISK

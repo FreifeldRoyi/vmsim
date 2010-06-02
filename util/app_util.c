@@ -90,22 +90,13 @@ void print_MM(mm_t* mm)
 	print_bitmap_binary(&MM_BITMAP(&mm));
 }
 
-int create_process()
-{
-	//TODO implement and check h file if parameters were added
-	return 0;
-}
-
-void del_process(int pid)
-{
-	//TODO implement
-}
-
 BOOL load_app_data(char* file_name, app_data_t* app_data)
 {
 	FILE* f;
 	unsigned n_page_mm;
 	unsigned n_page_disk;
+	mm_t* mm = NULL;
+	disk_t* disk = NULL;
 
 	assert(app_data != NULL);
 
@@ -131,9 +122,9 @@ BOOL load_app_data(char* file_name, app_data_t* app_data)
 	fscanf(f, "ShiftClock = %u", &APP_DATA_SHIFT_CLOCK(app_data));
 	//input correctness isn't checked
 
-	disk_init(APP_DATA_DISK(app_data), n_page_disk, APP_DATA_PAGE_SIZE(app_data),  APP_DATA_PAGE_SIZE(app_data)/* TODO block size maybe a different size??*/);
-	mm_init(APP_DATA_MM(app_data), n_page_mm, APP_DATA_PAGE_SIZE(app_data));
-	mmu_init(APP_DATA_MMU(app_data), APP_DATA_MM(app_data), APP_DATA_DISK(app_data));
+	disk_init(disk, n_page_disk, APP_DATA_PAGE_SIZE(app_data),  APP_DATA_PAGE_SIZE(app_data)/* TODO block size maybe a different size??*/);
+	mm_init(mm, n_page_mm, APP_DATA_PAGE_SIZE(app_data));
+	mmu_init(APP_DATA_MMU(app_data), mm, disk);
 	//TODO if any more fields are added to the app_data struct, don't forget to handle here
 
 	fclose(f);
@@ -143,13 +134,24 @@ BOOL load_app_data(char* file_name, app_data_t* app_data)
 
 void free_app_data(app_data_t* app_data)
 {
-	mm_destroy(APP_DATA_MM(app_data));
-	disk_destroy(APP_DATA_DISK(app_data));
+	mm_destroy(APP_DATA_MMU(app_data) -> mem);
+	disk_destroy(APP_DATA_MMU(app_data) -> disk);
 	mmu_destroy(APP_DATA_MMU(app_data));
 
 	//TODO if any more fields are added to the app_data struct, don't forget to handle here
 
 	free(app_data);
+}
+
+int create_process()
+{
+	//TODO implement and check h file if parameters were added
+	return 0;
+}
+
+void del_process(int pid)
+{
+	//TODO implement
 }
 
 static void read_and_print(int vaddr, int id, int amount)
@@ -168,7 +170,7 @@ static void f_read_and_print(int vaddr, int id, int amount, int fd)
 
 }
 
-void read(int vaddr, int id, int off,int amount, char* file_name)
+void sim_read(int vaddr, int id, int off,int amount, char* file_name)
 {
 	//TODO implement
 }
