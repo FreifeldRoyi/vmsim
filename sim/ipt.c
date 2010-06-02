@@ -5,11 +5,11 @@
 #include <assert.h>
 #include <stdio.h>
 
-#define READ_START(_ipt) DEBUG("Acquiring R\n");rwlock_acquire_read(&_ipt->lock)
-#define READ_END(_ipt) rwlock_release_read(&_ipt->lock);DEBUG("Released R\n")
+#define READ_START(_ipt) //DEBUG("Acquiring R\n");rwlock_acquire_read(&_ipt->lock)
+#define READ_END(_ipt) //rwlock_release_read(&_ipt->lock);DEBUG("Released R\n")
 
-#define WRITE_START(_ipt) DEBUG("Acquiring W\n");rwlock_acquire_write(&_ipt->lock)
-#define WRITE_END(_ipt) rwlock_release_write(&_ipt->lock);DEBUG("Released W\n")
+#define WRITE_START(_ipt) //DEBUG("Acquiring W\n");rwlock_acquire_write(&_ipt->lock)
+#define WRITE_END(_ipt) //rwlock_release_write(&_ipt->lock);DEBUG("Released W\n")
 
 #define IPT_INVALID -1
 
@@ -25,22 +25,26 @@ static int ipt_hat_idx_of(ipt_t* ipt, virt_addr_t addr)
 
 void ipt_lock_vaddr_read(ipt_t* ipt, virt_addr_t addr)
 {
+	rwlock_acquire_read(&ipt->hat_lock);
 	rwlock_acquire_read(&ipt->hat[ipt_hash(ipt, addr)].lock);
 }
 
 void ipt_lock_vaddr_write(ipt_t* ipt, virt_addr_t addr)
 {
+	rwlock_acquire_read(&ipt->hat_lock);
 	rwlock_acquire_write(&ipt->hat[ipt_hash(ipt, addr)].lock);
 }
 
 void ipt_unlock_vaddr_read(ipt_t* ipt, virt_addr_t addr)
 {
 	rwlock_release_read(&ipt->hat[ipt_hash(ipt, addr)].lock);
+	rwlock_release_read(&ipt->hat_lock);
 }
 
 void ipt_unlock_vaddr_write(ipt_t* ipt, virt_addr_t addr)
 {
 	rwlock_release_write(&ipt->hat[ipt_hash(ipt, addr)].lock);
+	rwlock_release_read(&ipt->hat_lock);
 }
 
 static void ipt_set_hat(ipt_t* ipt, virt_addr_t addr, int idx)
@@ -103,7 +107,12 @@ errcode_t ipt_init(ipt_t* ipt, int size)
 	ipt->free_pages = queue_init();
 	ipt->size = size;
 	ipt->num_valid_entries = 0;
-	if (rwlock_init(&ipt->lock) != ecSuccess)
+/*	if (rwlock_init(&ipt->lock) != ecSuccess)
+	{
+		return ecFail;
+	}*/
+
+	if (rwlock_init(&ipt->hat_lock) != ecSuccess)
 	{
 		return ecFail;
 	}
@@ -337,7 +346,9 @@ void ipt_destroy(ipt_t* ipt)
 		rwlock_destroy(&ipt->hat[i].lock);
 	}
 
-	rwlock_destroy(&ipt->lock);
+	rwlock_destroy(&ipt->hat_lock);
+
+//	rwlock_destroy(&ipt->lock);
 }
 
 #include "tests/ipt_tests.c"

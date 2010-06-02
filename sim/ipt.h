@@ -42,7 +42,9 @@ typedef struct{
 
 	struct _queue_t* free_pages;
 
-	rwlock_t lock;
+	rwlock_t hat_lock;
+
+//	rwlock_t lock;
 }ipt_t;
 
 errcode_t ipt_init(ipt_t* ipt, int size);
