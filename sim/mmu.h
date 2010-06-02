@@ -16,11 +16,13 @@ typedef struct
 	ipt_t mem_ipt;
 	map_t disk_map;
 
+	unsigned aging_freq;
+
 	pthread_mutex_t diskmap_lock;
 
 }mmu_t;
 
-errcode_t mmu_init(mmu_t* mmu, mm_t* mem, disk_t* disk);
+errcode_t mmu_init(mmu_t* mmu, mm_t* mem, disk_t* disk, int aging_freq);
 
 errcode_t mmu_alloc_multiple(mmu_t* mmu, virt_addr_t first_addr, int npages, int first_backing_page);
 errcode_t mmu_free_multiple(mmu_t* mmu, virt_addr_t first_addr, int npages);
