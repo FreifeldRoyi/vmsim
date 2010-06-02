@@ -3,6 +3,8 @@
 
 #include "util/logger.h"
 
+#include "aging_daemon.h"
+
 #include <pthread.h>
 
 #include <string.h>
@@ -12,24 +14,30 @@
 #define MMU_ACQUIRE_DISKMAP(_mmu) DEBUG("Acquire diskmap\n");pthread_mutex_lock(&(_mmu)->diskmap_lock); DEBUG("OK\n")
 #define MMU_RELEASE_DISKMAP(_mmu) DEBUG("Release diskmap\n");pthread_mutex_unlock(&(_mmu)->diskmap_lock); DEBUG("OK\n")
 
-void handle_out_of_mem()
-{
-
-}
-
 static BOOL disk_map_comparator(void* k1, void* k2)
 {
 	return !VIRT_ADDR_EQ(*(virt_addr_t*)k1, *(virt_addr_t*)k2);
 }
 
-errcode_t mmu_init(mmu_t* mmu, mm_t* mem, disk_t* disk)
+errcode_t mmu_init(mmu_t* mmu, mm_t* mem, disk_t* disk, int aging_freq)
 {
-	mmu->mem = mem;
-	mmu->disk = disk;
-	ipt_init(&mmu->mem_ipt, MM_NUM_OF_PAGES(mem));
-	map_init(&mmu->disk_map, sizeof(virt_addr_t), sizeof(phys_addr_t), disk_map_comparator);
+	errcode_t errcode;
+	errcode = ipt_init(&mmu->mem_ipt, MM_NUM_OF_PAGES(mem));
+	if (errcode != ecSuccess)
+	{
+		return errcode;
+	}
+	errcode = map_init(&mmu->disk_map, sizeof(virt_addr_t), sizeof(phys_addr_t), disk_map_comparator);
+	if (errcode != ecSuccess)
+	{
+		return errcode;
+	}
 
 	pthread_mutex_init(&mmu->diskmap_lock, NULL);
+
+	mmu->mem = mem;
+	mmu->disk = disk;
+	mmu->aging_freq = aging_freq;
 
 	return ecSuccess;
 }
@@ -178,6 +186,21 @@ errcode_t mmu_unpin_page(	mmu_t* mmu,
 }
 
 
+static errcode_t
+mmu_age_pages_if_needed(mmu_t* mmu)
+{
+	int refcount;
+	ipt_ref_count(&mmu->mem_ipt, &refcount);
+
+	DEBUG2("refcount=%d, aging_freq=%d\n", refcount, mmu->aging_freq);
+	if (refcount >= mmu->aging_freq)
+	{
+		ipt_zero_ref_count(&mmu->mem_ipt);
+		aging_daemon_update_pages();
+	}
+	return ecSuccess;
+}
+
 errcode_t mmu_read(	mmu_t* mmu,
 					virt_addr_t page,
 					unsigned offset,
@@ -202,6 +225,8 @@ errcode_t mmu_read(	mmu_t* mmu,
 	memcpy(buf, MM_DATA(mmu->mem) + mem_addr, nbytes);
 
 	errcode = mmu_unpin_page(mmu, page);
+
+	mmu_age_pages_if_needed(mmu);
 
 	return errcode;
 }
@@ -231,7 +256,7 @@ errcode_t mmu_write(mmu_t* mmu,
 
 	errcode = mmu_unpin_page(mmu, page);
 
-	return errcode;
+	mmu_age_pages_if_needed(mmu);
 
 	return errcode;
 }
@@ -243,11 +268,8 @@ errcode_t mmu_sync_to_backing_page(mmu_t* mmu, virt_addr_t page)
 	errcode_t errcode;
 	BYTE* page_data;
 
-//	mmu_block_alloc_free(mmu);
-
 	if (!ipt_is_dirty(&mmu->mem_ipt, page))
 	{
-//		mmu_release_alloc_free(mmu);
 		//if the page is not dirty, no need to write it.
 		return ecSuccess;
 	}
@@ -258,14 +280,12 @@ errcode_t mmu_sync_to_backing_page(mmu_t* mmu, virt_addr_t page)
 	assert(errcode != ecNotFound);
 	if (errcode != ecSuccess)
 	{
-//		mmu_release_alloc_free(mmu);
 		return ecFail;
 	}
 
 	assert(errcode != ecNotFound);
 	if (errcode != ecSuccess)
 	{
-//		mmu_release_alloc_free(mmu);
 		return ecFail;
 	}
 
@@ -273,7 +293,6 @@ errcode_t mmu_sync_to_backing_page(mmu_t* mmu, virt_addr_t page)
 	page_data = MM_DATA(mmu->mem) + MM_PAGE_SIZE(mmu->mem)*mem_page;
 	errcode = disk_set_page(mmu->disk,disk_page, page_data);
 
-//	mmu_release_alloc_free(mmu);
 	return errcode;
 }
 
@@ -284,13 +303,10 @@ errcode_t mmu_sync_from_backing_page(mmu_t* mmu, virt_addr_t page)
 	errcode_t errcode;
 	BYTE* page_data;
 
-//	mmu_block_alloc_free(mmu);
-
 	errcode = ipt_translate(&mmu->mem_ipt, page, &mem_page);
 	assert(errcode != ecNotFound);
 	if (errcode != ecSuccess)
 	{
-//		mmu_release_alloc_free(mmu);
 		return ecFail;
 	}
 
@@ -298,7 +314,6 @@ errcode_t mmu_sync_from_backing_page(mmu_t* mmu, virt_addr_t page)
 	assert(errcode != ecNotFound);
 	if (errcode != ecSuccess)
 	{
-//		mmu_release_alloc_free(mmu);
 		return ecFail;
 	}
 
@@ -306,7 +321,6 @@ errcode_t mmu_sync_from_backing_page(mmu_t* mmu, virt_addr_t page)
 	page_data = MM_DATA(mmu->mem) + MM_PAGE_SIZE(mmu->mem)*mem_page;
 	errcode = disk_get_page(mmu->disk,disk_page, page_data);
 
-//	mmu_release_alloc_free(mmu);
 	return errcode;
 }
 
