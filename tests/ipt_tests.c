@@ -177,6 +177,41 @@ cunit_err_t test_ipt_add_remove_generic()
 	return ceSuccess;
 }
 
+cunit_err_t test_ipt_reference()
+{
+	ipt_t ipt;
+	virt_addr_t addr;
+	int i;
+	ipt_ref_t reftype;
+	int refcount;
+
+	for (reftype = refRead; reftype <= refWrite; ++reftype)
+	{
+		ASSERT_EQUALS(ecSuccess, ipt_init(&ipt, NPAGES));
+		for (i=0;i<NPAGES; ++i)
+		{
+			VIRT_ADDR_PAGE(addr) = i % (NPAGES/3);
+			VIRT_ADDR_PID(addr) = i / (NPAGES/3);
+			ASSERT_EQUALS(ecSuccess, ipt_add(&ipt, addr));
+			ipt_reference(&ipt, addr, reftype);
+		}
+
+		for (i=0;i<NPAGES; ++i)
+		{
+			VIRT_ADDR_PAGE(addr) = i % (NPAGES/3);
+			VIRT_ADDR_PID(addr) = i / (NPAGES/3);
+			ASSERT_EQUALS(ecSuccess, ipt_remove(&ipt, addr));
+		}
+		ASSERT_EQUALS(ecSuccess, ipt_ref_count(&ipt, &refcount));
+		ASSERT_EQUALS(NPAGES,refcount);
+		ASSERT_EQUALS(ecSuccess, ipt_zero_ref_count(&ipt));
+	}
+
+	ipt_destroy(&ipt);
+
+	return ceSuccess;
+}
+
 void add_ipt_tests()
 {
 	ADD_TEST(test_ipt_add_no_listwalk);
@@ -186,4 +221,5 @@ void add_ipt_tests()
 	ADD_TEST(test_ipt_remove_no_listwalk);
 	ADD_TEST(test_ipt_remove_listwalk_and_others);
 	ADD_TEST(test_ipt_add_remove_generic);
+	ADD_TEST(test_ipt_reference);
 }

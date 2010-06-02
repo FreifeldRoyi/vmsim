@@ -5,11 +5,10 @@
 #include <assert.h>
 #include <stdio.h>
 
-#define READ_START(_ipt) DEBUG("Acquiring R\n");rwlock_acquire_read(&_ipt->lock)
-#define READ_END(_ipt) rwlock_release_read(&_ipt->lock);DEBUG("Released R\n")
-
-#define WRITE_START(_ipt) DEBUG("Acquiring W\n");rwlock_acquire_write(&_ipt->lock)
-#define WRITE_END(_ipt) rwlock_release_write(&_ipt->lock);DEBUG("Released W\n")
+#define REFCNT_READ_START(_ipt) rwlock_acquire_read(&ipt->refcnt_lock)
+#define REFCNT_READ_END(_ipt) rwlock_release_read(&ipt->refcnt_lock)
+#define REFCNT_WRITE_START(_ipt) rwlock_acquire_write(&ipt->refcnt_lock)
+#define REFCNT_WRITE_END(_ipt) rwlock_release_write(&ipt->refcnt_lock)
 
 #define IPT_INVALID -1
 
@@ -25,22 +24,36 @@ static int ipt_hat_idx_of(ipt_t* ipt, virt_addr_t addr)
 
 void ipt_lock_vaddr_read(ipt_t* ipt, virt_addr_t addr)
 {
+	rwlock_acquire_read(&ipt->hat_lock);
 	rwlock_acquire_read(&ipt->hat[ipt_hash(ipt, addr)].lock);
 }
 
 void ipt_lock_vaddr_write(ipt_t* ipt, virt_addr_t addr)
 {
+	rwlock_acquire_read(&ipt->hat_lock);
 	rwlock_acquire_write(&ipt->hat[ipt_hash(ipt, addr)].lock);
 }
 
 void ipt_unlock_vaddr_read(ipt_t* ipt, virt_addr_t addr)
 {
 	rwlock_release_read(&ipt->hat[ipt_hash(ipt, addr)].lock);
+	rwlock_release_read(&ipt->hat_lock);
 }
 
 void ipt_unlock_vaddr_write(ipt_t* ipt, virt_addr_t addr)
 {
 	rwlock_release_write(&ipt->hat[ipt_hash(ipt, addr)].lock);
+	rwlock_release_read(&ipt->hat_lock);
+}
+
+void ipt_lock_all_vaddr(ipt_t* ipt)
+{
+	rwlock_acquire_write(&ipt->hat_lock);
+}
+
+void ipt_unlock_all_vaddr(ipt_t* ipt)
+{
+	rwlock_release_write(&ipt->hat_lock);
 }
 
 static void ipt_set_hat(ipt_t* ipt, virt_addr_t addr, int idx)
@@ -51,7 +64,6 @@ static void ipt_set_hat(ipt_t* ipt, virt_addr_t addr, int idx)
 static int ipt_get_next_free_entry(ipt_t* ipt)
 {
 	int ret;
-	WRITE_START(ipt);
 	if (queue_size(ipt->free_pages) == 0)
 	{
 		ret = IPT_INVALID;
@@ -60,7 +72,6 @@ static int ipt_get_next_free_entry(ipt_t* ipt)
 	{
 		ret = (int)queue_pop(ipt->free_pages);
 	}
-	WRITE_END(ipt);
 	return ret;
 }
 
@@ -102,8 +113,14 @@ errcode_t ipt_init(ipt_t* ipt, int size)
 	}
 	ipt->free_pages = queue_init();
 	ipt->size = size;
-	ipt->num_valid_entries = 0;
-	if (rwlock_init(&ipt->lock) != ecSuccess)
+
+	ipt->ref_count = 0;
+	if (rwlock_init(&ipt->refcnt_lock) != ecSuccess)
+	{
+		return ecFail;
+	}
+
+	if (rwlock_init(&ipt->hat_lock) != ecSuccess)
 	{
 		return ecFail;
 	}
@@ -123,12 +140,14 @@ errcode_t ipt_init(ipt_t* ipt, int size)
 
 static void init_ipt_slot(ipt_t* ipt, int idx,virt_addr_t addr, int next, int prev)
 {
+	ipt->entries[idx].next = next;
+	ipt->entries[idx].prev = prev;
 	ipt->entries[idx].page_data.addr = addr;
 	ipt->entries[idx].page_data.dirty = FALSE;
 	ipt->entries[idx].page_data.referenced = FALSE;
-	ipt->entries[idx].next = next;
-	ipt->entries[idx].prev = prev;
 	ipt->entries[idx].page_data.valid = TRUE;
+	ipt->entries[idx].page_data.page_age = 0;
+	SET_MSB(ipt->entries[idx].page_data.page_age, 1);
 }
 
 static void dump_list(ipt_t* ipt)
@@ -140,7 +159,7 @@ static void dump_list(ipt_t* ipt)
 	{
 		printf("%3d|%d\n", i, ipt->hat[i].ipt_idx);
 	}
-	printf("\n\nIPT Dump:(%d valid entries)\nidx|vaddr|prev|next|valid\n", ipt->num_valid_entries);
+	printf("\n\nIPT Dump:\nidx|vaddr|prev|next|valid\n");
 	for (i=0; i<ipt->size; ++i)
 	{
 		printf("%3d|(%d:%d)|%4d|%4d|%s\n", 	i,
@@ -160,37 +179,22 @@ BOOL ipt_has_translation_unlocked(ipt_t* ipt, virt_addr_t addr)
 BOOL ipt_has_translation(ipt_t* ipt, virt_addr_t addr)
 {
 	BOOL ret;
-	READ_START(ipt);
 
 	ret = ipt_has_translation_unlocked(ipt, addr);
 
-	READ_END(ipt);
 	return ret;
 }
 
 BOOL ipt_is_dirty(ipt_t* ipt, virt_addr_t addr)
 {
 	BOOL dirty;
-	READ_START(ipt);
 	assert (ipt_has_translation_unlocked(ipt, addr));
 	dirty = ipt->entries[get_vaddr_idx(ipt, addr)].page_data.dirty;
-	READ_END(ipt);
 	return dirty;
-}
-
-BOOL ipt_is_referenced(ipt_t* ipt, virt_addr_t addr)
-{
-	BOOL ref;
-	READ_START(ipt);
-	assert (ipt_has_translation_unlocked(ipt, addr));
-	ref = ipt->entries[get_vaddr_idx(ipt, addr)].page_data.referenced;
-	READ_END(ipt);
-	return ref;
 }
 
 errcode_t ipt_reference(ipt_t* ipt, virt_addr_t addr, ipt_ref_t reftype)
 {
-	WRITE_START(ipt);
 	assert (ipt_has_translation_unlocked(ipt, addr));
 
 	ipt->entries[get_vaddr_idx(ipt, addr)].page_data.referenced = TRUE;
@@ -198,7 +202,10 @@ errcode_t ipt_reference(ipt_t* ipt, virt_addr_t addr, ipt_ref_t reftype)
 	{
 		ipt->entries[get_vaddr_idx(ipt, addr)].page_data.dirty = TRUE;
 	}
-	WRITE_END(ipt);
+
+	REFCNT_WRITE_START(ipt);
+	++ipt->ref_count;
+	REFCNT_WRITE_END(ipt);
 
 	return ecSuccess;
 }
@@ -211,10 +218,8 @@ errcode_t ipt_translate(ipt_t* ipt, virt_addr_t addr, phys_addr_t* paddr)
 
 errcode_t ipt_reverse_translate(ipt_t* ipt, phys_addr_t paddr, virt_addr_t* vaddr)
 {
-	READ_START(ipt);
 	*vaddr = ipt->entries[paddr].page_data.addr;
 
-	READ_END(ipt);
 	return ecSuccess;
 }
 
@@ -311,7 +316,6 @@ errcode_t ipt_remove(ipt_t* ipt, virt_addr_t addr)
 errcode_t ipt_for_each_entry(ipt_t* ipt, void (*func)(phys_addr_t, page_data_t*))
 {
 	int i;
-	READ_START(ipt);
 	for (i=0; i<ipt->size; ++i)
 	{
 		if (ipt->entries[i].page_data.valid)
@@ -319,25 +323,40 @@ errcode_t ipt_for_each_entry(ipt_t* ipt, void (*func)(phys_addr_t, page_data_t*)
 			func(i, &ipt->entries[i].page_data);
 		}
 	}
-	READ_END(ipt);
+	return ecSuccess;
+}
+
+errcode_t ipt_ref_count(ipt_t* ipt, int* refcount)
+{
+	REFCNT_READ_START(ipt);
+	*refcount = ipt->ref_count;
+	REFCNT_READ_END(ipt);
+	return ecSuccess;
+}
+
+errcode_t ipt_zero_ref_count(ipt_t* ipt)
+{
+	REFCNT_WRITE_START(ipt);
+	ipt->ref_count = 0;
+	REFCNT_WRITE_END(ipt);
 	return ecSuccess;
 }
 
 void ipt_destroy(ipt_t* ipt)
 {
 	int i;
-	WRITE_START(ipt);
 	DEBUG1("Destroying IPT %p\n", ipt->entries);
 	free(ipt->entries);
 	ipt->entries = NULL;
-	WRITE_END(ipt);
 
 	for (i=0; i < ipt->size; ++i)
 	{
 		rwlock_destroy(&ipt->hat[i].lock);
 	}
 
-	rwlock_destroy(&ipt->lock);
+	rwlock_destroy(&ipt->hat_lock);
+
+	rwlock_destroy(&ipt->refcnt_lock);
 }
 
 #include "tests/ipt_tests.c"

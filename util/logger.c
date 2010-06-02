@@ -13,7 +13,7 @@ pid_t cur_tid()
 
 ///TODO add synchronization
 
-static log_level_t g_log_level = lvInfo;
+static log_level_t g_log_level = lvError;
 
 void log_write(	const char* file, int line, const char* func,
 				log_level_t level, const char* message,...)

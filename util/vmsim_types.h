@@ -4,6 +4,7 @@
 #define POSIX_ERRCODE(_retcode) (((_retcode) == 0)?ecSuccess:ecFail)
 
 #define ARRSIZE(_arr) (sizeof(_arr)/sizeof(_arr[0]))
+#define SET_MSB(_var, _bit)  (_var) |= ((_bit)<<((sizeof(_var)*8)-1))
 
 #define TRUE 1
 #define FALSE 0
