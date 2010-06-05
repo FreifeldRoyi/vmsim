@@ -13,27 +13,30 @@
 #include "sim/mm.h"
 #include "sim/disk.h"
 #include "sim/mmu.h"
+#include "sim/pcb.h"
+
 
 typedef struct
 {
 	BOOL initialized;
 
-	unsigned max_num_of_proc;
 	unsigned page_size;
 	unsigned num_of_proc_page;
 	unsigned shift_clock;
 
-	mmu_t* mmu;
+	proc_cont_t* proc_cont;
+
 	//TODO fill up later on
 } app_data_t;
 
 #define APP_DATA(x)	((app_data_t *) (x))
-#define APP_DATA_NUM_OF_PROC(x) APP_DATA((x)) -> max_num_of_proc
 #define APP_DATA_PAGE_SIZE(x) APP_DATA((x)) -> page_size
 #define APP_DATA_NUM_OF_PROC_PAGE(x) APP_DATA((x)) -> num_of_proc_page
 #define APP_DATA_SHIFT_CLOCK(x) APP_DATA((x)) -> shift_clock
 #define APP_DATA_INIT(x) APP_DATA((x)) -> initialized
-#define APP_DATA_MMU(x) APP_DATA((x)) -> mmu
+#define APP_DATA_PROC_CONT(x) APP_DATA((x)) -> proc_cont
+#define APP_DATA_MMU(x) PROC_CONT_MMU(APP_DATA_PROC_CONT((x)))
+
 /**
  * prints the given MM unit
  */
@@ -50,7 +53,7 @@ void print_MMU_table(ipt_t* table);
  * TODO maybe add parameters later
  * returns the process' id or -1 in case of a failure
  */
-int create_process();
+int create_process(app_data_t* app_data);
 
 /**
  * deletes the process with the given id
@@ -58,7 +61,7 @@ int create_process();
  * NOTE: the UI thread will perform this job
  * 	and the UI will not return until this job is finished
  */
-void del_process(int id);
+void del_process(app_data_t* app_data, procid_t pid);
 
 /**
  * finds process with the given ID.

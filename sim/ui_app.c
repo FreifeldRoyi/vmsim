@@ -36,7 +36,7 @@ BOOL do_create_process(ui_cmd_t* cmd, app_data_t* app_data)
 
 	if (!APP_DATA_INIT(app_data))
 	{
-		pid = create_process();
+		pid = create_process(app_data);
 
 		if (pid < 0)
 			to_return = FALSE;
@@ -63,7 +63,7 @@ BOOL do_del_process(ui_cmd_t* cmd, app_data_t* app_data)
 			err = sscanf(cmd->param, " %u ", &pid);
 			if (err > 0)
 			{
-				del_process(pid);
+				del_process(app_data, pid);
 				to_return = TRUE;
 			}
 			else
@@ -434,7 +434,7 @@ BOOL do_batch_file(ui_cmd_t* cmd, app_data_t* app_data)
 /**
  * the main function of the application
  */
-int app_main(int argc, char **argv)
+int app_main(int argc, char** argv)
 {
 	app_data_t app_data;
 	ui_cmd_t cmd;
@@ -442,7 +442,7 @@ int app_main(int argc, char **argv)
 	//memset(app_data, 0, sizeof(app_data));
 	//memset(cmd, 0, sizeof(ui_cmd_t));
 
-	BOOL exit = FALSE;
+	BOOL done = FALSE;
 
 	APP_DATA_INIT(&app_data) = FALSE;
 	//APP_DATA_MM(app_data) = 0; was set by memset above
@@ -452,14 +452,19 @@ int app_main(int argc, char **argv)
 	//mm_init(app_data.main_memory...) TODO this
 	//disk_init(APP_DATA_DISK(&app_data),DISK_NPAGES,PAGE_SIZE,BLOCK_SIZE);
 
-	//load_app_data
+
+	//TODO check argv
+	if (!load_app_data(argv[1], &app_data))
+	{
+		return -1;
+	}
 
 	do
 	{
 		cmd = get_command();
 		if (!strcmp("exit", cmd.command))
 		{
-			exit = TRUE;
+			done = TRUE;
 		}
 		else if (!strcmp("createProcess", cmd.command))
 		{
@@ -529,7 +534,7 @@ int app_main(int argc, char **argv)
 		{
 			printf ("Wrong input, please type again\n");
 		}
-	} while (!exit);
+	} while (!done);
 
 	if (app_data.initialized)
 	{

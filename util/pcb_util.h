@@ -26,13 +26,12 @@ typedef struct
 	int disk_block_start;
 	int block_size; //can later be removed
 	BOOL junk; //if TRUE can be overridden
-	BOOL del; //if TRUE, process will terminate
+	BOOL del; //if TRUE, process got a delete message
 
 	worker_thread_t* proc_thrd;
 
 	struct _queue_t* mail_box;
 	pthread_mutex_t mail_mutex;
-
 	pthread_cond_t no_mail;
 } process_t;
 
@@ -43,7 +42,7 @@ typedef struct
 #define PROC_DEL(x) PROCESS((x)) -> del
 #define PROC_THRD(x) PROCESS((x)) -> proc_thrd
 #define PROC_MAIL(x) PROCESS((x)) -> mail_box
-#define PROC_LOCK(x) PROCESS((x)) -> mail_mutex
+#define PROC_MAIL_LOCK(x) PROCESS((x)) -> mail_mutex
 #define PROC_COND(x) PROCESS((x)) -> no_mail
 
 typedef struct
@@ -54,15 +53,18 @@ typedef struct
 
 	unsigned max_num_of_proc;
 
-	pthread_mutex_t lock;
+	pthread_mutex_t mutex;
+	pthread_cond_t delete;
+
 } proc_cont_t; //process container
 
 #define PROC_CONT(x) ((proc_cont_t *) (x))
 #define PROC_CONT_PRC(x) PROC_CONT((x)) -> processes //returns processes
 #define PROC_CONT_N_PROC(x) PROC_CONT((x)) -> max_num_of_proc
 #define PROC_CONT_MMU(x) PROC_CONT((x)) -> mmu
-#define PROC_CONT_LOCK(x) PROC_CONT((x)) -> lock
-#define PROC_CONT_SPEC_PROC(_cont, _pid) PROC_CONT_PRC((_cont))[(_pid)]
+#define PROC_CONT_SPEC_PROC(_cont, _pid) (PROC_CONT_PRC((_cont)))[_pid]
+#define PROC_CONT_MTX(x) PROC_CONT((x)) -> mutex
+#define PROC_CONT_DEL(x) PROC_CONT((x)) -> delete
 
 typedef enum
 {
@@ -122,6 +124,8 @@ void func_arg_destroy(func_arg* arg);
 /**
  * deallocate all memory associated with post
  * including all post->args
+ *
+ * @param post post to destroy
  */
 void post_destroy(post_t* post);
 
@@ -131,6 +135,10 @@ void post_destroy(post_t* post);
  * deallocates process' queue
  * memory on MM
  * and memory on DISK
+ * call this function only if process is active
+ *
+ * @param prc - process container
+ * @param pid - process's id to delete
  */
 errcode_t process_dealloc(proc_cont_t* prc, procid_t pid);
 
