@@ -10,7 +10,7 @@
 #include <malloc.h>
 #include <assert.h>
 
-#define BLOCK_SIZE 8 //TODO initial size.file reading doesn't have this info
+#define BLOCK_SIZE 8 //TODO initial size.file doesn't contain this info
 
 static void print_ipt_entry(ipt_entry_t entry)
 {
@@ -93,12 +93,17 @@ void print_MM(mm_t* mm)
 BOOL load_app_data(char* file_name, app_data_t* app_data)
 {
 	FILE* f;
+	unsigned nproc;
 	unsigned n_page_mm;
 	unsigned n_page_disk;
-	mm_t* mm = NULL;
-	disk_t* disk = NULL;
+	mm_t* mm = (mm_t*)calloc(0, sizeof(mm_t));
+	disk_t* disk = (disk_t*)calloc(0, sizeof(disk_t));;
+	mmu_t* mmu = (mmu_t*)calloc(0, sizeof(mmu_t));;
 
 	assert(app_data != NULL);
+	assert(mm != NULL);
+	assert(disk != NULL);
+	assert(mmu != NULL);
 
 	if (app_data->initialized)
 	{
@@ -114,44 +119,82 @@ BOOL load_app_data(char* file_name, app_data_t* app_data)
 		return FALSE;
 	}
 
-	fscanf(f, "MaxNumOfProcesses = %u", &APP_DATA_NUM_OF_PROC(app_data));
-	fscanf(f, "PageSize = %u", &APP_DATA_PAGE_SIZE(app_data));
-	fscanf(f, "NumOfPagesInMM = %u", &n_page_mm);
-	fscanf(f, "NumOfPagesInDisk = %u", &n_page_disk);
-	fscanf(f, "NumOfProcessPages = %u", &APP_DATA_NUM_OF_PROC_PAGE(app_data));
+	fscanf(f, "MaxNumOfProcesses = %u\n", &nproc);
+	fscanf(f, "PageSize = %u\n", &APP_DATA_PAGE_SIZE(app_data));
+	fscanf(f, "NumOfPagesInMM = %u\n", &n_page_mm);
+	fscanf(f, "NumOfPagesInDisk = %u\n", &n_page_disk);
+	fscanf(f, "NumOfProcessPages = %u\n", &APP_DATA_NUM_OF_PROC_PAGE(app_data));
 	fscanf(f, "ShiftClock = %u", &APP_DATA_SHIFT_CLOCK(app_data));
 	//input correctness isn't checked
 
 	disk_init(disk, n_page_disk, APP_DATA_PAGE_SIZE(app_data),  APP_DATA_PAGE_SIZE(app_data)/* TODO block size maybe a different size??*/);
 	mm_init(mm, n_page_mm, APP_DATA_PAGE_SIZE(app_data));
-	mmu_init(APP_DATA_MMU(app_data), mm, disk, APP_DATA_SHIFT_CLOCK(app_data));
-	//TODO if any more fields are added to the app_data struct, don't forget to handle here
+	mmu_init(mmu, mm, disk, APP_DATA_SHIFT_CLOCK(app_data));
 
-	fclose(f);
+	APP_DATA_PROC_CONT(app_data) = init_proc_cont(nproc, mmu);
+	//TODO if any more fields are added to the app_data struct, don't forget to handle here
+	//TODO what about PRM and Aging Daemon?
+
+	//TODO seg fault in fclose(f);
 
 	return TRUE;
 }
 
 void free_app_data(app_data_t* app_data)
 {
-	mm_destroy(APP_DATA_MMU(app_data) -> mem);
-	disk_destroy(APP_DATA_MMU(app_data) -> disk);
-	mmu_destroy(APP_DATA_MMU(app_data));
+	proc_cont_t* proc_cont = APP_DATA_PROC_CONT(app_data);
+	mmu_t* mmu = PROC_CONT_MMU(proc_cont);
 
+	//TODO NOTE: if mm and disk are destroyed within the mmu delete the next piece of code
+	//delete
+	mm_t* mm = mmu->mem;
+	disk_t* disk = mmu->disk;
+	mm_destroy(mm);
+	disk_destroy(disk);
+	//end delete
+
+	//TODO NOTE: if mmu is destroyed within the process container delete the next line
+	mmu_destroy(mmu);
+
+	proc_cont_destroy(proc_cont);
 	//TODO if any more fields are added to the app_data struct, don't forget to handle here
 
 	free(app_data);
 }
 
-int create_process()
+int create_process(app_data_t* app_data)
 {
-	//TODO implement and check h file if parameters were added
-	return 0;
+	int pid = -1;
+
+	pid = init_process(APP_DATA_PROC_CONT(app_data));
+
+	if (pid < 0)
+	{
+		printf("ERR: A process could not be created: error-%d\n", pid);
+	}
+	else
+	{
+		printf("Process with id %u was created\n", pid);
+	}
+
+	return pid;
 }
 
-void del_process(int pid)
+void del_process(app_data_t* app_data, procid_t pid)
 {
-	//TODO implement
+	errcode_t err = process_destroy(APP_DATA_PROC_CONT(app_data), pid);
+
+	if(err == ecFail)
+	{
+		printf("Process id %u is not within range", pid);
+	}
+	else if (err == ecNotFound)
+	{
+		printf("Process %u was not found", pid);
+	}
+
+	//we just deal with error printing here
+	//no need for success print
 }
 
 static void read_and_print(int vaddr, int id, int amount)
