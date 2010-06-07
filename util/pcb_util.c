@@ -9,28 +9,28 @@
 #include <malloc.h>
 #include <assert.h>
 
-post_err_t compose_mail(process_t* prc, post_t* post)
+errcode_t compose_mail(process_t* prc, post_t* post)
 {
 	assert(prc != NULL);
 	assert(post != NULL);
 
 	pthread_mutex_lock(&PROC_MAIL_LOCK(prc));
-	if (prc == NULL)
+	/*if (prc == NULL)
 	{
 		pthread_mutex_unlock(&PROC_MAIL_LOCK(prc));
-		return peFail;
-	}
+		return ecFail;
+	}*/
 
 	if (PROC_DEL(prc)) //process got exit flag
 	{
 		pthread_mutex_unlock(&PROC_MAIL_LOCK(prc));
-		return peEnd;
+		return ecFail;
 	}
 
 	queue_push(PROC_MAIL(prc), post);
 	pthread_cond_signal(&PROC_COND(prc));
 	pthread_mutex_unlock(&PROC_MAIL_LOCK(prc));
-	return peSuccess;
+	return ecSuccess;
 }
 
 post_t* create_post(func_t func, void** args, int nargs)

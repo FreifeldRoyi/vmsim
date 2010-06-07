@@ -71,9 +71,9 @@ void del_process(app_data_t* app_data, procid_t pid);
  * offset > 0 => loop
  * offset < 0 => normal read
  */
-void sim_read(int vaddr, int id, int off,int amount, char* file_name);
+void sim_read(proc_cont_t* proc_cont, int vaddr, int id, int off,int amount, char* file_name);
 
-void write(int vaddr, int id, char* s, int amount);
+void sim_write(proc_cont_t* proc_cont, int vaddr, int id, char* s, int off,int amount);
 
 /**
  *prints the registers of the aging algorithm

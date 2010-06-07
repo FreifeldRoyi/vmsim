@@ -77,13 +77,6 @@ typedef enum
 	fcDel
 } func_t;
 
-typedef enum
-{
-	peFail,  //error while sending mail to the process
-	peSuccess, //operation success
-	peEnd //thread has exit code
-} post_err_t;
-
 typedef struct
 {
 	func_t func;
@@ -107,7 +100,7 @@ typedef struct
 /**
  * creates and sends mail to the process
  */
-post_err_t compose_mail(process_t* prc, post_t* post);
+errcode_t compose_mail(process_t* prc, post_t* post);
 
 /**
  * creates post struct
