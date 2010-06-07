@@ -86,16 +86,21 @@ void print_MM(mm_t* mm)
 	printf("NUM OF PAGES: %d\n", num_of_pages);
 	printf("PAGE SIZE: %d\n", page_size);
 
-	printf("BITMAP: ");
-	print_bitmap_binary(&MM_BITMAP(&mm));
+	//printf("BITMAP: ");
+	//print_bitmap_binary(&MM_BITMAP(&mm));
 }
 
 BOOL load_app_data(char* file_name, app_data_t* app_data)
 {
 	FILE* f;
+
 	unsigned nproc;
+	unsigned page_size;
 	unsigned n_page_mm;
 	unsigned n_page_disk;
+	unsigned n_proc_pages;
+	unsigned shift_clock;
+
 	mm_t* mm = (mm_t*)calloc(0, sizeof(mm_t));
 	disk_t* disk = (disk_t*)calloc(0, sizeof(disk_t));;
 	mmu_t* mmu = (mmu_t*)calloc(0, sizeof(mmu_t));;
@@ -120,22 +125,29 @@ BOOL load_app_data(char* file_name, app_data_t* app_data)
 	}
 
 	fscanf(f, "MaxNumOfProcesses = %u\n", &nproc);
-	fscanf(f, "PageSize = %u\n", &APP_DATA_PAGE_SIZE(app_data));
+	fscanf(f, "PageSize = %u\n", &page_size);
 	fscanf(f, "NumOfPagesInMM = %u\n", &n_page_mm);
 	fscanf(f, "NumOfPagesInDisk = %u\n", &n_page_disk);
-	fscanf(f, "NumOfProcessPages = %u\n", &APP_DATA_NUM_OF_PROC_PAGE(app_data));
-	fscanf(f, "ShiftClock = %u", &APP_DATA_SHIFT_CLOCK(app_data));
+	fscanf(f, "NumOfProcessPages = %u\n", &n_proc_pages);
+	fscanf(f, "ShiftClock = %u", &shift_clock);
 	//input correctness isn't checked
 
-	disk_init(disk, n_page_disk, APP_DATA_PAGE_SIZE(app_data),  APP_DATA_PAGE_SIZE(app_data)/* TODO block size maybe a different size??*/);
-	mm_init(mm, n_page_mm, APP_DATA_PAGE_SIZE(app_data));
-	mmu_init(mmu, mm, disk, APP_DATA_SHIFT_CLOCK(app_data));
+	APP_DATA_PAGE_SIZE(app_data) = page_size;
+	APP_DATA_NUM_OF_PROC_PAGE(app_data) = n_proc_pages;
+	APP_DATA_SHIFT_CLOCK(app_data) = shift_clock;
+
+	disk_init(disk, n_page_disk, page_size,  page_size/* TODO block size maybe a different size??*/);
+	mm_init(mm, n_page_mm, page_size);
+	mmu_init(mmu, mm, disk, shift_clock);
 
 	APP_DATA_PROC_CONT(app_data) = init_proc_cont(nproc, mmu);
 	//TODO if any more fields are added to the app_data struct, don't forget to handle here
 	//TODO what about PRM and Aging Daemon?
 
 	//TODO seg fault in fclose(f);
+	//fclose(f);
+
+	APP_DATA_INIT(app_data) = TRUE;
 
 	return TRUE;
 }
@@ -197,33 +209,50 @@ void del_process(app_data_t* app_data, procid_t pid)
 	//no need for success print
 }
 
-static void read_and_print(int vaddr, int id, int amount)
+void sim_read(proc_cont_t* proc_cont, int vaddr, int id, int off,int amount, char* file_name)
 {
-	//TODO implement
-}
+	int page_size = PROC_CONT_MMU(proc_cont) -> mem -> page_size;
+	virt_addr_t vAddr;
+	FILE* f;
+	errcode_t err = ecSuccess;
 
-static void loop_read_and_print(int vaddr, int id, int off, int amount)
-{
+	BYTE* buf = (BYTE*)malloc((amount * off + 1) * sizeof(BYTE));
+	int multiplier = 0;
+	int i;
+
+	//TODO check correctness
+	vAddr.page = vaddr;
+	vAddr.pid = id;
+
+	assert(off > 0);
+	assert(id >= 0);
 	assert(amount > 0);
-	//TODO implement
+
+	while (multiplier < amount - 1 && off * multiplier < page_size && err == ecSuccess)
+	{
+		err = mmu_read(PROC_CONT_MMU(proc_cont), vAddr, off * multiplier, 1, &buf[multiplier]); //TODO check correctness
+		++multiplier;
+	}
+
+	if (err == ecSuccess)
+	{
+		if (file_name == NULL)
+			f = stdout;
+		else
+			f = fopen(file_name, "w+"); //TODO maybe a different mode
+
+		for (i = 0; i < multiplier; ++i)
+		{
+			fprintf(f, "Char %d: %c\n", i, buf[i]);
+		}
+
+		if (file_name != NULL)
+			fclose(f);
+	}
+	free(buf);
 }
 
-static void f_read_and_print(int vaddr, int id, int amount, int fd)
-{
-
-}
-
-void sim_read(int vaddr, int id, int off,int amount, char* file_name)
-{
-	//TODO implement
-}
-
-static void loop_write(int vaddr, int id, char* s)
-{
-	//TODO implement
-}
-
-void write(int vaddr, int id, char* s, int amount)
+void sim_write(proc_cont_t* proc_cont, int vaddr, int id, char* s, int off,int amount)
 {
 	//TODO implement
 }
