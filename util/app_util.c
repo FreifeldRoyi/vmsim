@@ -86,16 +86,21 @@ void print_MM(mm_t* mm)
 	printf("NUM OF PAGES: %d\n", num_of_pages);
 	printf("PAGE SIZE: %d\n", page_size);
 
-	printf("BITMAP: ");
-	print_bitmap_binary(&MM_BITMAP(&mm));
+	//printf("BITMAP: ");
+	//print_bitmap_binary(&MM_BITMAP(&mm));
 }
 
 BOOL load_app_data(char* file_name, app_data_t* app_data)
 {
 	FILE* f;
+
 	unsigned nproc;
+	unsigned page_size;
 	unsigned n_page_mm;
 	unsigned n_page_disk;
+	unsigned n_proc_pages;
+	unsigned shift_clock;
+
 	mm_t* mm = (mm_t*)calloc(0, sizeof(mm_t));
 	disk_t* disk = (disk_t*)calloc(0, sizeof(disk_t));;
 	mmu_t* mmu = (mmu_t*)calloc(0, sizeof(mmu_t));;
@@ -120,22 +125,29 @@ BOOL load_app_data(char* file_name, app_data_t* app_data)
 	}
 
 	fscanf(f, "MaxNumOfProcesses = %u\n", &nproc);
-	fscanf(f, "PageSize = %u\n", &APP_DATA_PAGE_SIZE(app_data));
+	fscanf(f, "PageSize = %u\n", &page_size);
 	fscanf(f, "NumOfPagesInMM = %u\n", &n_page_mm);
 	fscanf(f, "NumOfPagesInDisk = %u\n", &n_page_disk);
-	fscanf(f, "NumOfProcessPages = %u\n", &APP_DATA_NUM_OF_PROC_PAGE(app_data));
-	fscanf(f, "ShiftClock = %u", &APP_DATA_SHIFT_CLOCK(app_data));
+	fscanf(f, "NumOfProcessPages = %u\n", &n_proc_pages);
+	fscanf(f, "ShiftClock = %u", &shift_clock);
 	//input correctness isn't checked
 
-	disk_init(disk, n_page_disk, APP_DATA_PAGE_SIZE(app_data),  APP_DATA_PAGE_SIZE(app_data)/* TODO block size maybe a different size??*/);
-	mm_init(mm, n_page_mm, APP_DATA_PAGE_SIZE(app_data));
-	mmu_init(mmu, mm, disk, APP_DATA_SHIFT_CLOCK(app_data));
+	APP_DATA_PAGE_SIZE(app_data) = page_size;
+	APP_DATA_NUM_OF_PROC_PAGE(app_data) = n_proc_pages;
+	APP_DATA_SHIFT_CLOCK(app_data) = shift_clock;
+
+	disk_init(disk, n_page_disk, page_size,  page_size/* TODO block size maybe a different size??*/);
+	mm_init(mm, n_page_mm, page_size);
+	mmu_init(mmu, mm, disk, shift_clock);
 
 	APP_DATA_PROC_CONT(app_data) = init_proc_cont(nproc, mmu);
 	//TODO if any more fields are added to the app_data struct, don't forget to handle here
 	//TODO what about PRM and Aging Daemon?
 
 	//TODO seg fault in fclose(f);
+	//fclose(f);
+
+	APP_DATA_INIT(app_data) = TRUE;
 
 	return TRUE;
 }
@@ -197,33 +209,180 @@ void del_process(app_data_t* app_data, procid_t pid)
 	//no need for success print
 }
 
-static void read_and_print(int vaddr, int id, int amount)
+void read_process(proc_cont_t* proc_cont, int vaddr, int id, int amount)
 {
-	//TODO implement
+	errcode_t err;
+	post_t* post;
+	void** args = (void**)malloc(2 * sizeof (void*));
+	virt_addr_t* vAddr = (virt_addr_t*)malloc(sizeof(virt_addr_t));
+	int* amnt = (int*)malloc(sizeof(int));
+
+	assert(args != NULL);
+	assert(vAddr != NULL);
+	assert(amnt != NULL);
+
+	vAddr -> page = vaddr;
+	vAddr -> pid = id;
+	(*amnt) = amount;
+
+	args[0] = vAddr;
+	args[1] = amnt;
+
+	post = create_post(fcRead, args, 2);
+	assert(post != NULL);
+
+	err = compose_mail(&PROC_CONT_SPEC_PROC(proc_cont, id),post);
+	assert(err != ecFail);
 }
 
-static void loop_read_and_print(int vaddr, int id, int off, int amount)
+void loop_read_process(proc_cont_t* proc_cont, int vaddr, int id, int off, int amount)
 {
-	assert(amount > 0);
-	//TODO implement
+	errcode_t err;
+	post_t* post;
+	void** args = (void**)malloc(3 * sizeof (void*));
+	virt_addr_t* vAddr = (virt_addr_t*)malloc(sizeof(virt_addr_t));
+	int* offset = (int*)malloc(sizeof(int));
+	int* amnt = (int*)malloc(sizeof(int));
+
+	assert(args != NULL);
+	assert(vAddr != NULL);
+	assert(offset != NULL);
+	assert(amnt != NULL);
+
+	vAddr -> page = vaddr;
+	vAddr -> pid = id;
+	(*offset) = off;
+	(*amnt) = amount;
+
+	args[0] = vAddr;
+	args[1] = offset;
+	args[2] = amnt;
+
+	post = create_post(fcLoopRead, args, 3);
+	assert(post != NULL);
+
+	err = compose_mail(&PROC_CONT_SPEC_PROC(proc_cont, id),post);
+	assert(err != ecFail);
 }
 
-static void f_read_and_print(int vaddr, int id, int amount, int fd)
+void read_to_file_process(proc_cont_t* proc_cont, int vaddr, int id, int amount, char* file_name)
 {
+	errcode_t err;
+	post_t* post;
+	void** args = (void**)malloc(3 * sizeof (void*));
+	virt_addr_t* vAddr = (virt_addr_t*)malloc(sizeof(virt_addr_t));
+	int* amnt = (int*)malloc(sizeof(int));
 
+	assert(args != NULL);
+	assert(vAddr != NULL);
+	assert(amnt != NULL);
+	assert(file_name != NULL);
+
+	vAddr -> page = vaddr;
+	vAddr -> pid = id;
+	(*amnt) = amount;
+
+	args[0] = vAddr;
+	args[1] = amnt;
+	args[2] = file_name; //TODO might be a problem....since file_name may be defined on stack
+
+	post = create_post(fcReadToFile, args, 3);
+	assert(post != NULL);
+
+	err = compose_mail(&PROC_CONT_SPEC_PROC(proc_cont, id),post);
+	assert(err != ecFail);
 }
 
-void sim_read(int vaddr, int id, int off,int amount, char* file_name)
+void loop_read_to_file_process(proc_cont_t* proc_cont, int vaddr, int id, int off, int amount, char* file_name)
 {
-	//TODO implement
+	errcode_t err;
+	post_t* post;
+	void** args = (void**)malloc(4 * sizeof (void*));
+	virt_addr_t* vAddr = (virt_addr_t*)malloc(sizeof(virt_addr_t));
+	int* offset = (int*)malloc(sizeof(int));
+	int* amnt = (int*)malloc(sizeof(int));
+
+	assert(args != NULL);
+	assert(vAddr != NULL);
+	assert(offset != NULL);
+	assert(amnt != NULL);
+	assert(file_name != NULL);
+
+	vAddr -> page = vaddr;
+	vAddr -> pid = id;
+	(*offset) = off;
+	(*amnt) = amount;
+
+	args[0] = vAddr;
+	args[1] = offset;
+	args[2] = amnt;
+	args[3] = file_name; //TODO might be a problem....since file_name may be defined on stack
+
+	post = create_post(fcLoopReadToFile, args, 4);
+	assert(post != NULL);
+
+	err = compose_mail(&PROC_CONT_SPEC_PROC(proc_cont, id),post);
+	assert(err != ecFail);
 }
 
-static void loop_write(int vaddr, int id, char* s)
+void write_process(proc_cont_t* proc_cont, int vaddr, int id, char* s)
 {
-	//TODO implement
+	errcode_t err;
+	post_t* post;
+	void** args = (void**)malloc(3 * sizeof (void*));
+	virt_addr_t* vAddr = (virt_addr_t*)malloc(sizeof(virt_addr_t));
+	int* amnt = (int*)malloc(sizeof(int));
+
+	assert(args != NULL);
+	assert(vAddr != NULL);
+	assert(s != NULL);
+	assert(amnt != NULL);
+
+	vAddr -> page = vaddr;
+	vAddr -> pid = id;
+	(*amnt) = strlen(s); //TODO really??
+
+	args[0] = vAddr;
+	args[1] = s; //TODO might be a problem....since file_name may be defined on stack
+	args[2] = amnt;
+
+	post = create_post(fcWrite, args, 3);
+	assert(post != NULL);
+
+	err = compose_mail(&PROC_CONT_SPEC_PROC(proc_cont, id),post);
+	assert(err != ecFail);
 }
 
-void write(int vaddr, int id, char* s, int amount)
+void loop_write_process(proc_cont_t* proc_cont, int vaddr, int id, char c, int off, int amount)
 {
-	//TODO implement
+	errcode_t err;
+	post_t* post;
+	void** args = (void**)malloc(4 * sizeof (void*));
+	virt_addr_t* vAddr = (virt_addr_t*)malloc(sizeof(virt_addr_t));
+	char* ch = (char*)malloc(sizeof(char));
+	int* offset = (int*)malloc(sizeof(int));
+	int* amnt = (int*)malloc(sizeof(int));
+
+	assert(args != NULL);
+	assert(vAddr != NULL);
+	assert(ch != NULL);
+	assert(offset != NULL);
+	assert(amnt != NULL);
+
+	vAddr -> page = vaddr;
+	vAddr -> pid = id;
+	(*ch) = c;
+	(*offset) = off;
+	(*amnt) = amount;
+
+	args[0] = vAddr;
+	args[1] = ch;
+	args[2] = offset;
+	args[3] = amnt;
+
+	post = create_post(fcLoopWrite, args, 4);
+	assert(post != NULL);
+
+	err = compose_mail(&PROC_CONT_SPEC_PROC(proc_cont, id),post);
+	assert(err != ecFail);
 }

@@ -8,7 +8,6 @@
 #ifndef MM_H_
 #define MM_H_
 
-#include "util/bitmap.h"
 #include "util/vmsim_types.h"
 #include "util/rwlock.h"
 
@@ -19,7 +18,7 @@ typedef struct _mm_t
 	int npages;
 	int page_size;
 
-	bitmap_t bitmap;
+	// bitmap_t bitmap; TODO not needed since ipt is used as mm's bitmap
 
 	rwlock_t lock;
 
@@ -29,7 +28,7 @@ typedef struct _mm_t
 #define MM(x) ((mm_t *) (x))
 #define MM_DATA(x) MM((x)) -> data
 #define MM_LOCK(x) MM((x)) -> lock
-#define MM_BITMAP(x) MM((x)) -> bitmap
+//#define MM_BITMAP(x) MM((x)) -> bitmap
 #define MM_NUM_OF_PAGES(x) MM((x)) -> npages
 #define MM_PAGE_SIZE(x) MM((x)) -> page_size
 
@@ -46,31 +45,35 @@ typedef struct _mm_t
 errcode_t mm_init(mm_t* mm, int npages, int pagesize);
 
 /**
- * gets a copy of a page already set in the main memory
+ * reads a page from the main memory
  * if succeeded ecSuccess will be returned
- * ecFail otherwise
+ * ecFail will be returned in case of unallocated memory
+ *
+ * assumptions:
+ *	mm is not NULL
+ *	page is an unsigned int between 0 to NUM_OF_PAGES_IN_MM - 1
  *
  * @param mm - the main memory
- * @param page - the page
- * @param page_data - where to save the data
+ * @param page - the page to read
+ * @param buf - outer pointer, a buffer to write to. It is assumed that buf is atleast  PAGE_SIZE
  */
-errcode_t mm_get_page(mm_t* mm, int page, BYTE* page_data);
+errcode_t mm_read(mm_t* mm, int page, BYTE* buf);
 
 /**
- * resets a page inside the main memory
- * ecSuccess will be returned if operation succeeded
- * ecFail otherwise
+ * write a page to disk
+ * It is assumed that write operation will be monitored via
+ * mmu, thus no need for allocation check.
+ * NOTE: use this function after using the alloc_page or there may be data loss
  *
  * @param mm - the main memory
- * @param page - the page to set
- * @param page_data - the data to be set
+ * @param page - the page to write to
+ * @param page_data - Buffer of data to read from
  */
-errcode_t mm_set_page(mm_t* mm, int page, BYTE* page_data);
+errcode_t mm_write(mm_t* mm, int page, BYTE* buf);
 
 /**
  * deallocates the main memory
  */
-//TODO pay attention, in non-graceful exit, the mm may contain data being held also by the disk, needs to pay attention not to "double free" memory. will cause glibc errors
 void mm_destroy(mm_t* mm);
 
 #endif /* MM_H_ */

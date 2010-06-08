@@ -8,6 +8,7 @@
 #include "pcb.h"
 #include <assert.h>
 #include <malloc.h>
+#include <strings.h>
 
 proc_cont_t* init_proc_cont(int nprocs, mmu_t* mmu)
 {
@@ -35,10 +36,10 @@ int init_process(proc_cont_t* proc_cont)
 	process_t* prc;
 	errcode_t errs;
 	int* page = NULL;
-
+	
 	assert(proc_cont != NULL);
 
-	//WRITE_START(&PROC_CONT_LOCK(proc_cont));
+	pthread_mutex_lock(&PROC_CONT_MTX(proc_cont));
 
 	while (i < PROC_CONT_N_PROC(proc_cont) && !PROC_CONT_SPEC_PROC(proc_cont,i).junk)
 	{
@@ -47,11 +48,12 @@ int init_process(proc_cont_t* proc_cont)
 
 	if (i >= PROC_CONT_N_PROC(proc_cont))
 	{
-	//	WRITE_END(&PROC_CONT_LOCK(proc_cont));
+		pthread_mutex_unlock(&PROC_CONT_MTX(proc_cont));
 		return -1;
 	}
 
-	prc = (process_t *)calloc(0,sizeof(process_t));
+	prc = &PROC_CONT_SPEC_PROC(proc_cont, i); //area is already allocated on disk. just needs to get the pointer
+	bzero(prc, sizeof(process_t)); //make all fields zero
 
 	//init lock
 	pthread_mutex_init(&PROC_MAIL_LOCK(prc),NULL);
@@ -62,7 +64,7 @@ int init_process(proc_cont_t* proc_cont)
 
 	if (errs == ecFail)
 	{
-	//	WRITE_END(&PROC_CONT_LOCK(proc_cont));
+		pthread_mutex_unlock(&PROC_CONT_MTX(proc_cont));
 		free(prc);
 		return -2;
 	}
@@ -80,18 +82,18 @@ int init_process(proc_cont_t* proc_cont)
 
 	if (errs == ecFail)
 	{
-	//	WRITE_END(&PROC_CONT_LOCK(proc_cont));
+		pthread_mutex_unlock(&PROC_CONT_MTX(proc_cont));
 		free(prc);
 		return -3;
 	}
 
-//	WRITE_END(&PROC_CONT_LOCK(proc_cont));
+	pthread_mutex_unlock(&PROC_CONT_MTX(proc_cont));
 	return i;
 }
 
 errcode_t process_destroy(proc_cont_t* proc_cont, procid_t id)
 {
-	post_err_t err;
+	errcode_t err;
 	process_t* this_proc = NULL;
 	assert(proc_cont != NULL);
 
@@ -114,7 +116,7 @@ errcode_t process_destroy(proc_cont_t* proc_cont, procid_t id)
 	post_t* post = create_post(fcDel,NULL, 0);
 	err = compose_mail(this_proc, post);
 
-	if (err != peSuccess)
+	if (err != ecSuccess)
 	{
 		free(post); //post->args is NULL
 	}

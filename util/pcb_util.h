@@ -77,13 +77,6 @@ typedef enum
 	fcDel
 } func_t;
 
-typedef enum
-{
-	peFail,  //error while sending mail to the process
-	peSuccess, //operation success
-	peEnd //thread has exit code
-} post_err_t;
-
 typedef struct
 {
 	func_t func;
@@ -107,7 +100,7 @@ typedef struct
 /**
  * creates and sends mail to the process
  */
-post_err_t compose_mail(process_t* prc, post_t* post);
+errcode_t compose_mail(process_t* prc, post_t* post);
 
 /**
  * creates post struct
@@ -141,6 +134,11 @@ void post_destroy(post_t* post);
  * @param pid - process's id to delete
  */
 errcode_t process_dealloc(proc_cont_t* prc, procid_t pid);
+
+/**
+ * TODO documentation
+ */
+errcode_t sim_read(proc_cont_t* proc_cont, virt_addr_t* vAddr, int off,int amount, char* file_name);
 
 
 #endif /* PCB_UTIL_H_ */
