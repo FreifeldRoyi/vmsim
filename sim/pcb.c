@@ -12,13 +12,12 @@
 proc_cont_t* init_proc_cont(int nprocs, mmu_t* mmu)
 {
 	proc_cont_t* to_return;
-	pthread_mutex_t mutex;
-	pthread_cond_t cond_del = PTHREAD_COND_INITIALIZER;
-
-	pthread_mutex_init(&mutex,NULL);
 
 	to_return = (proc_cont_t *)malloc(sizeof(proc_cont_t));
 	assert(to_return != NULL);
+
+	pthread_mutex_init(&PROC_CONT_MTX(to_return), NULL);
+	pthread_cond_init(&PROC_CONT_DEL(to_return), NULL);
 
 	process_t* processes = (process_t*)calloc(0, nprocs * sizeof(process_t));
 	assert(processes != NULL);
@@ -26,8 +25,6 @@ proc_cont_t* init_proc_cont(int nprocs, mmu_t* mmu)
 	PROC_CONT_N_PROC(to_return) = nprocs;
 	PROC_CONT_PRC(to_return) = processes;
 	PROC_CONT_MMU(to_return) = mmu;
-	PROC_CONT_MTX(to_return) = mutex;
-	PROC_CONT_DEL(to_return) = cond_del;
 
 	return to_return;
 }
@@ -38,10 +35,6 @@ int init_process(proc_cont_t* proc_cont)
 	process_t* prc;
 	errcode_t errs;
 	int* page = NULL;
-	pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
-	pthread_mutex_t mutex;
-
-	pthread_mutex_init(&mutex,NULL);
 
 	assert(proc_cont != NULL);
 
@@ -61,7 +54,7 @@ int init_process(proc_cont_t* proc_cont)
 	prc = (process_t *)calloc(0,sizeof(process_t));
 
 	//init lock
-	PROC_MAIL_LOCK(prc) = mutex;
+	pthread_mutex_init(&PROC_MAIL_LOCK(prc),NULL);
 
 	//init disk info
 	assert(PROC_CONT_MMU(proc_cont) -> disk != NULL);
@@ -79,7 +72,7 @@ int init_process(proc_cont_t* proc_cont)
 	PROC_JUNK(prc) = FALSE;
 
 	PROC_MAIL(prc) = queue_init();
-	PROC_COND(prc) = cond;
+	pthread_cond_init(&PROC_COND(prc), NULL);
 	PROC_PID(prc) = i;
 
 	//concurrent object init
