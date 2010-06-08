@@ -12,6 +12,7 @@
 
 proc_cont_t* init_proc_cont(int nprocs, mmu_t* mmu)
 {
+	int i = 0;
 	proc_cont_t* to_return;
 
 	to_return = (proc_cont_t *)malloc(sizeof(proc_cont_t));
@@ -22,6 +23,12 @@ proc_cont_t* init_proc_cont(int nprocs, mmu_t* mmu)
 
 	process_t* processes = (process_t*)calloc(nprocs, sizeof(process_t));
 	assert(processes != NULL);
+
+	while (i < nprocs)
+	{
+		processes[i].junk = TRUE;
+		++i;
+	}
 
 	PROC_CONT_N_PROC(to_return) = nprocs;
 	PROC_CONT_PRC(to_return) = processes;
@@ -35,7 +42,7 @@ int init_process(proc_cont_t* proc_cont)
 	int i = 0;
 	process_t* prc;
 	errcode_t errs;
-	int* page = NULL;
+	int page;
 	
 	assert(proc_cont != NULL);
 
@@ -60,7 +67,7 @@ int init_process(proc_cont_t* proc_cont)
 
 	//init disk info
 	assert(PROC_CONT_MMU(proc_cont) -> disk != NULL);
-	errs = disk_alloc_process_block(PROC_CONT_MMU(proc_cont) -> disk, page);
+	errs = disk_alloc_process_block(PROC_CONT_MMU(proc_cont) -> disk, &page);
 
 	if (errs == ecFail)
 	{
@@ -69,7 +76,7 @@ int init_process(proc_cont_t* proc_cont)
 		return -2;
 	}
 
-	PROC_STRT(prc) = *page;
+	PROC_STRT(prc) = page;
 	prc -> block_size = PROC_CONT_MMU(proc_cont) -> disk -> process_block_size;
 	PROC_JUNK(prc) = FALSE;
 
@@ -78,6 +85,9 @@ int init_process(proc_cont_t* proc_cont)
 	PROC_PID(prc) = i;
 
 	//concurrent object init
+	PROC_THRD(prc) = (worker_thread_t*)malloc(sizeof(worker_thread_t));
+	assert(PROC_THRD(prc) != NULL);
+
 	errs = worker_thread_create(PROC_THRD(prc),&process_func);
 
 	if (errs == ecFail)

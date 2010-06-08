@@ -6,6 +6,8 @@
  */
 
 #include "app_util.h"
+#include "sim/prm.h"
+#include "sim/aging_daemon.h"
 #include <string.h>
 #include <malloc.h>
 #include <assert.h>
@@ -92,6 +94,7 @@ void print_MM(mm_t* mm)
 
 BOOL load_app_data(char* file_name, app_data_t* app_data)
 {
+	errcode_t err;
 	FILE* f;
 
 	unsigned nproc;
@@ -142,7 +145,11 @@ BOOL load_app_data(char* file_name, app_data_t* app_data)
 
 	APP_DATA_PROC_CONT(app_data) = init_proc_cont(nproc, mmu);
 	//TODO if any more fields are added to the app_data struct, don't forget to handle here
-	//TODO what about PRM and Aging Daemon?
+	err = prm_init(mmu);
+	assert(err == ecSuccess);
+
+	err = aging_daemon_start(mmu);
+	assert(err == ecSuccess);
 
 	//TODO seg fault in fclose(f);
 	//fclose(f);
