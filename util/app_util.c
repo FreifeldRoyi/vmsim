@@ -101,9 +101,9 @@ BOOL load_app_data(char* file_name, app_data_t* app_data)
 	unsigned n_proc_pages;
 	unsigned shift_clock;
 
-	mm_t* mm = (mm_t*)calloc(0, sizeof(mm_t));
-	disk_t* disk = (disk_t*)calloc(0, sizeof(disk_t));;
-	mmu_t* mmu = (mmu_t*)calloc(0, sizeof(mmu_t));;
+	mm_t* mm = (mm_t*)malloc(sizeof(mm_t));
+	disk_t* disk = (disk_t*)malloc(sizeof(disk_t));;
+	mmu_t* mmu = (mmu_t*)malloc(sizeof(mmu_t));;
 
 	assert(app_data != NULL);
 	assert(mm != NULL);
@@ -171,7 +171,6 @@ void free_app_data(app_data_t* app_data)
 	proc_cont_destroy(proc_cont);
 	//TODO if any more fields are added to the app_data struct, don't forget to handle here
 
-	free(app_data);
 }
 
 int create_process(app_data_t* app_data)

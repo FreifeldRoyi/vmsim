@@ -20,7 +20,7 @@ proc_cont_t* init_proc_cont(int nprocs, mmu_t* mmu)
 	pthread_mutex_init(&PROC_CONT_MTX(to_return), NULL);
 	pthread_cond_init(&PROC_CONT_DEL(to_return), NULL);
 
-	process_t* processes = (process_t*)calloc(0, nprocs * sizeof(process_t));
+	process_t* processes = (process_t*)calloc(nprocs, sizeof(process_t));
 	assert(processes != NULL);
 
 	PROC_CONT_N_PROC(to_return) = nprocs;
