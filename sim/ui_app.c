@@ -660,6 +660,7 @@ int app_main(int argc, char** argv)
 
 	BOOL done = FALSE;
 	BOOL cmd_ret = FALSE;
+	memset(&app_data, 0, sizeof(app_data));
 
 	if (argc != 2)
 	{
