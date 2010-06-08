@@ -101,6 +101,19 @@ int init_process(proc_cont_t* proc_cont)
 	return i;
 }
 
+errcode_t process_start(proc_cont_t* proc_cont, procid_t pid)
+{
+	worker_thread_t* thrd = PROC_THRD(&PROC_CONT_SPEC_PROC(proc_cont, pid));
+
+	func_arg* arg = (func_arg*)malloc(sizeof(func_arg));
+	assert(arg != NULL);
+
+	ARG_CONT(arg) = proc_cont;
+	ARG_PID(arg) = pid;
+
+	return worker_thread_start(thrd, arg);
+}
+
 errcode_t process_destroy(proc_cont_t* proc_cont, procid_t id)
 {
 	errcode_t err;
@@ -176,7 +189,7 @@ BOOL process_func(void* arg)
 	BOOL to_return = FALSE;
 	func_arg* arguments = ARG(arg);
 
-	proc_cont_t* cont = ARG_PROC(arguments);
+	proc_cont_t* cont = ARG_CONT(arguments);
 	process_t* this_proc = &PROC_CONT_SPEC_PROC(cont,ARG_PID(arguments));
 
 	struct _queue_t* mail_box = PROC_MAIL(this_proc);

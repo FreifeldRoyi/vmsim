@@ -27,6 +27,16 @@ proc_cont_t* init_proc_cont(int nprocs, mmu_t* mmu);
 int init_process(proc_cont_t* proc_cont);
 
 /**
+ * Start the run of the process with the given pid
+ *
+ * @param proc_cont - the process container
+ * @param pid - the process id to start
+ *
+ * @return ecSuccess on success or some other code on failure
+ */
+errcode_t process_start(proc_cont_t* proc_cont, procid_t pid);
+
+/**
  * destroys the process container given,
  * sends a stop message to all processes
  * free all memory associated with each process

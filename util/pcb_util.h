@@ -93,7 +93,6 @@ typedef struct
 #define ARG(x) ((func_arg *) (x))
 #define ARG_CONT(x) ARG((x)) -> cont
 #define ARG_PID(x) ARG((x)) -> curr_pid
-#define ARG_PROC(x) ARG_CONT((x))
 
 /****************************************aid functions*******************************/
 
