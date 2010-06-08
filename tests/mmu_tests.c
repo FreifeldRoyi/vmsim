@@ -584,6 +584,56 @@ cunit_err_t test_mmu_alloc_free_pagefault_aging_stress()
 	return err;
 }
 
+static BOOL stats_thread_func(void* arg)
+{
+	mmu_t* mmu = arg;
+	mmu_stats_t stats= mmu_get_stats(mmu);
+	struct timespec ts;
+	static mmu_stats_t old_stats = {0,0};
+
+	assert(old_stats.hits <= stats.hits);
+	assert(old_stats.nrefs <= stats.nrefs);
+
+	ts.tv_sec = 0;
+	ts.tv_nsec = 50000;
+	nanosleep(&ts, NULL);
+	old_stats = stats;
+	return FALSE;
+}
+
+cunit_err_t test_mmu_alloc_free_pagefault_aging_stats_stress()
+{
+	mmu_t mmu;
+	mm_t mem;
+	disk_t disk;
+	cunit_err_t err;
+	worker_thread_t stats_thread;
+
+	assert(ecSuccess == worker_thread_create(&stats_thread, &stats_thread_func));
+
+	ASSERT_EQUALS(ecSuccess, mm_init(&mem, MEM_NPAGES, PAGESIZE));
+	ASSERT_EQUALS(ecSuccess, disk_init(&disk,DISK_NPAGES, PAGESIZE, DISK_BLOCKSIZE));
+	ASSERT_EQUALS(ecSuccess, mmu_init(&mmu, &mem, &disk, AGING_FREQ));
+
+	worker_thread_start(&stats_thread, &mmu);
+
+	aging_daemon_start(&mmu);
+
+	err = do_test_mmu_alloc_free_stress(&mmu, DISK_BLOCKSIZE);
+
+	aging_daemon_stop(&mmu);
+	worker_thread_stop(&stats_thread);
+
+	ASSERT_TRUE(mmu_get_stats(&mmu).nrefs > 0);
+	ASSERT_TRUE(mmu_get_stats(&mmu).hits > 0);
+
+	mmu_destroy(&mmu);
+	disk_destroy(&disk);
+	mm_destroy(&mem);
+
+	return err;
+}
+
 void add_mmu_tests()
 {
 	ADD_TEST(test_mmu_alloc_free_sanity);
@@ -600,4 +650,5 @@ void add_mmu_tests()
 	ADD_TEST(test_mmu_alloc_free_pagefault_stress);
 	ADD_TEST(test_mmu_alloc_free_pagefault_hatlock_stress);
 	ADD_TEST(test_mmu_alloc_free_pagefault_aging_stress);
+	ADD_TEST(test_mmu_alloc_free_pagefault_aging_stats_stress);
 }

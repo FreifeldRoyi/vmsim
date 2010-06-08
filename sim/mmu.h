@@ -12,6 +12,12 @@
 
 typedef struct
 {
+	int nrefs; //total number of references
+	int hits;  //number of hit references
+}mmu_stats_t;
+
+typedef struct
+{
 	mm_t* mem;
 	disk_t* disk;
 
@@ -21,6 +27,9 @@ typedef struct
 	unsigned aging_freq;
 
 	pthread_mutex_t diskmap_lock;
+
+	mmu_stats_t stats;
+	rwlock_t stats_lock;
 
 }mmu_t;
 
@@ -138,6 +147,12 @@ void mmu_block_alloc_free(mmu_t* mmu);
  * @param mmu the MMU to unlock
  * */
 void mmu_release_alloc_free(mmu_t* mmu);
+
+/**Return a copy of the MMU statistics at a given point in time.
+ * @param mmu the MMU to use
+ * @return a copy of the current MMU stats
+ * */
+mmu_stats_t mmu_get_stats(mmu_t* mmu);
 
 /**Finalize an MMU.
  * This function does not finalize the disk/mm attached to the MMU.
