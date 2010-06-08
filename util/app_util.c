@@ -204,15 +204,15 @@ void del_process(app_data_t* app_data, procid_t pid)
 
 	if(err == ecFail)
 	{
-		printf("Process id %u is not within range", pid);
+		printf("Process id %u is not within range\n", pid);
 	}
 	else if (err == ecNotFound)
 	{
-		printf("Process %u was not found", pid);
+		printf("Process %u was not found\n", pid);
 	}
 	else
 	{
-		printf("Process %u was deleted", pid);
+		printf("Process %u was deleted\n", pid);
 	}
 
 	//we just deal with error printing here
