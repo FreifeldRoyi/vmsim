@@ -4,7 +4,7 @@
 /**A simulated MMU*/
 
 #include "util/queue.h"
-#include "util/rwlock.h"
+#include "util/locks.h"
 #include "util/map.h"
 #include "ipt.h"
 #include "mm.h"

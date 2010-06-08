@@ -50,8 +50,8 @@ void print_MMU_table(ipt_t* table);
 /**
  * creates a new process and prints its id on screen
  * updates all data structures
- * TODO maybe add parameters later
- * returns the process' id or -1 in case of a failure
+ *
+ * @return the process' id or -1 in case of a failure
  */
 int create_process(app_data_t* app_data);
 

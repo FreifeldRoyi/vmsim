@@ -7,6 +7,7 @@
 #include "ui_app.h"
 #include "util/logger.h"
 #include <string.h>
+#include <assert.h>
 
 static BOOL command_handler(ui_cmd_t* cmd, app_data_t* app_data)
 {
@@ -541,7 +542,6 @@ BOOL do_print_MM(ui_cmd_t* cmd, app_data_t* app_data)
 	}
 	else
 		return FALSE;
-
 }
 
 BOOL do_print_MMU_table(ui_cmd_t* cmd, app_data_t* app_data)
