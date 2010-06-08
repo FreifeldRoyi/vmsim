@@ -1,0 +1,6 @@
+MaxNumOfProcesses = 1
+PageSize = 1
+NumOfPagesInMM = 1
+NumOfPagesInDisk = 1
+NumOfProcessPages = 1
+ShiftClock = 1
