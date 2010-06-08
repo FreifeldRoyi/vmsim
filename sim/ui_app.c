@@ -5,6 +5,7 @@
  *      Author: Freifeld Royi
  */
 #include "ui_app.h"
+#include "util/logger.h"
 #include <string.h>
 
 static BOOL command_handler(ui_cmd_t* cmd, app_data_t* app_data)
@@ -520,12 +521,15 @@ BOOL do_hit_rate(ui_cmd_t* cmd, app_data_t* app_data)
 {
 	if (APP_DATA_INIT(app_data))
 	{
-		//print_MM(&APP_DATA_MM(app_data));
+		mmu_stats_t stats = mmu_get_stats(APP_DATA_MMU(app_data));
+		float hitrate = (float)stats.hits/ (float)stats.nrefs;
+		assert(hitrate <= 1.0f);
+		assert(hitrate >= 0.0f);
+		printf("Hitrate is %f\n", hitrate);
 		return TRUE;
 	}
 	else
 		return FALSE;
-	//TODO implement
 }
 
 BOOL do_print_MM(ui_cmd_t* cmd, app_data_t* app_data)
@@ -577,26 +581,14 @@ BOOL do_print_HAT(ui_cmd_t* cmd, app_data_t* app_data)
 
 BOOL do_monitor(ui_cmd_t* cmd, app_data_t* app_data)
 {
-	if (APP_DATA_INIT(app_data))
-	{
-		//print_MM(&APP_DATA_MM(app_data));
-		return TRUE;
-	}
-	else
-		return FALSE;
-	//TODO implement
+	log_set_level(lvInfo);
+	return TRUE;
 }
 
 BOOL do_no_monitor(ui_cmd_t* cmd, app_data_t* app_data)
 {
-	if (APP_DATA_INIT(app_data))
-	{
-		//print_MM(&APP_DATA_MM(app_data));
-		return TRUE;
-	}
-	else
-		return FALSE;
-	//TODO implement
+	log_set_level(lvError);
+	return TRUE;
 }
 
 BOOL do_batch_file(ui_cmd_t* cmd, app_data_t* app_data)
