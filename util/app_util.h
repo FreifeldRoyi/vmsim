@@ -30,11 +30,11 @@ typedef struct
 } app_data_t;
 
 #define APP_DATA(x)	((app_data_t *) (x))
-#define APP_DATA_PAGE_SIZE(x) APP_DATA((x)) -> page_size
-#define APP_DATA_NUM_OF_PROC_PAGE(x) APP_DATA((x)) -> num_of_proc_page
-#define APP_DATA_SHIFT_CLOCK(x) APP_DATA((x)) -> shift_clock
-#define APP_DATA_INIT(x) APP_DATA((x)) -> initialized
-#define APP_DATA_PROC_CONT(x) APP_DATA((x)) -> proc_cont
+#define APP_DATA_PAGE_SIZE(x) (x) -> page_size
+#define APP_DATA_NUM_OF_PROC_PAGE(x) (x) -> num_of_proc_page
+#define APP_DATA_SHIFT_CLOCK(x) (x) -> shift_clock
+#define APP_DATA_INIT(x) (x) -> initialized
+#define APP_DATA_PROC_CONT(x) (x) -> proc_cont
 #define APP_DATA_MMU(x) PROC_CONT_MMU(APP_DATA_PROC_CONT((x)))
 
 /**

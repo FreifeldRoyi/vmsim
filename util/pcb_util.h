@@ -36,14 +36,14 @@ typedef struct
 } process_t;
 
 #define PROCESS(x) ((process_t *) (x))
-#define PROC_PID(x) PROCESS((x)) -> pid
-#define PROC_STRT(x) PROCESS((x)) -> disk_block_start
-#define PROC_JUNK(x) PROCESS((x)) -> junk
-#define PROC_DEL(x) PROCESS((x)) -> del
-#define PROC_THRD(x) PROCESS((x)) -> proc_thrd
-#define PROC_MAIL(x) PROCESS((x)) -> mail_box
-#define PROC_MAIL_LOCK(x) PROCESS((x)) -> mail_mutex
-#define PROC_COND(x) PROCESS((x)) -> no_mail
+#define PROC_PID(x) (x) -> pid
+#define PROC_STRT(x) (x) -> disk_block_start
+#define PROC_JUNK(x) (x) -> junk
+#define PROC_DEL(x) (x) -> del
+#define PROC_THRD(x) (x) -> proc_thrd
+#define PROC_MAIL(x) (x) -> mail_box
+#define PROC_MAIL_LOCK(x) (x) -> mail_mutex
+#define PROC_COND(x) (x) -> no_mail
 
 typedef struct
 {
@@ -59,12 +59,12 @@ typedef struct
 } proc_cont_t; //process container
 
 #define PROC_CONT(x) ((proc_cont_t *) (x))
-#define PROC_CONT_PRC(x) PROC_CONT((x)) -> processes //returns processes
-#define PROC_CONT_N_PROC(x) PROC_CONT((x)) -> max_num_of_proc
-#define PROC_CONT_MMU(x) PROC_CONT((x)) -> mmu
+#define PROC_CONT_PRC(x) (x) -> processes //returns processes
+#define PROC_CONT_N_PROC(x) (x) -> max_num_of_proc
+#define PROC_CONT_MMU(x) (x) -> mmu
 #define PROC_CONT_SPEC_PROC(_cont, _pid) (PROC_CONT_PRC((_cont)))[_pid]
-#define PROC_CONT_MTX(x) PROC_CONT((x)) -> mutex
-#define PROC_CONT_DEL(x) PROC_CONT((x)) -> delete
+#define PROC_CONT_MTX(x) (x) -> mutex
+#define PROC_CONT_DEL(x) (x) -> delete
 
 typedef enum
 {
@@ -91,8 +91,8 @@ typedef struct
 } func_arg;
 
 #define ARG(x) ((func_arg *) (x))
-#define ARG_CONT(x) ARG((x)) -> cont
-#define ARG_PID(x) ARG((x)) -> curr_pid
+#define ARG_CONT(x) (x) -> cont
+#define ARG_PID(x) (x) -> curr_pid
 
 /****************************************aid functions*******************************/
 

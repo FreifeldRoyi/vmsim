@@ -26,11 +26,11 @@ typedef struct _mm_t
 } mm_t;
 
 #define MM(x) ((mm_t *) (x))
-#define MM_DATA(x) MM((x)) -> data
-#define MM_LOCK(x) MM((x)) -> lock
+#define MM_DATA(x) (x) -> data
+#define MM_LOCK(x) (x) -> lock
 //#define MM_BITMAP(x) MM((x)) -> bitmap
-#define MM_NUM_OF_PAGES(x) MM((x)) -> npages
-#define MM_PAGE_SIZE(x) MM((x)) -> page_size
+#define MM_NUM_OF_PAGES(x) (x) -> npages
+#define MM_PAGE_SIZE(x) (x) -> page_size
 
 /**
  * initializes the main memory

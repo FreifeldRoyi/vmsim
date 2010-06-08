@@ -145,8 +145,9 @@ errcode_t process_destroy(proc_cont_t* proc_cont, procid_t id)
 	}
 	PROC_DEL(this_proc) = TRUE;
 
-	pthread_cond_wait(&PROC_CONT_DEL(this_proc), &PROC_CONT_MTX(proc_cont));
+	pthread_cond_wait(&PROC_CONT_DEL(proc_cont), &PROC_CONT_MTX(proc_cont));
 	//TODO add here code for sleeping
+	pthread_mutex_unlock(&PROC_CONT_MTX(proc_cont));
 
 	//READ_END(&PROC_CONT_LOCK(proc_cont));
 	return ecSuccess;
@@ -200,7 +201,6 @@ BOOL process_func(void* arg)
 	while (queue_size(mail_box) == 0) //use while though only one thread uses the mail box
 	{
 		pthread_cond_wait(&PROC_COND(this_proc),&PROC_MAIL_LOCK(this_proc));
-		pthread_mutex_lock(&PROC_MAIL_LOCK(this_proc)); //after release, lock needs to be acquired again
 	}
 
 	post = queue_pop(mail_box);

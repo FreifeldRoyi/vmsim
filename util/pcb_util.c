@@ -69,6 +69,7 @@ void post_destroy(post_t* post)
 
 errcode_t process_dealloc(proc_cont_t* proc_cont, procid_t pid)
 {
+	pthread_mutex_lock(&PROC_CONT_MTX(proc_cont));
 	mmu_t* mmu = PROC_CONT_MMU(proc_cont);
 	disk_t* disk = mmu -> disk;
 	process_t* this_proc = &PROC_CONT_SPEC_PROC(proc_cont, pid);
@@ -98,7 +99,7 @@ errcode_t process_dealloc(proc_cont_t* proc_cont, procid_t pid)
 	PROC_JUNK(this_proc) = TRUE;
 
 	pthread_cond_signal(&PROC_CONT_DEL(proc_cont));
-
+	pthread_mutex_unlock(&PROC_CONT_MTX(proc_cont));
 	return ecSuccess;
 }
 

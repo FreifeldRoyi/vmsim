@@ -15,7 +15,7 @@ static BOOL command_handler(ui_cmd_t* cmd, app_data_t* app_data)
 	{
 		to_return = FALSE;
 	}
-	if (!strcmp("createProcess", cmd -> command))
+	else if (!strcmp("createProcess", cmd -> command))
 	{
 		do_create_process(cmd, app_data);
 	}

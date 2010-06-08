@@ -79,11 +79,11 @@ void print_MMU_table(ipt_t* table)
 
 void print_MM(mm_t* mm)
 {
-	int num_of_pages = MM_NUM_OF_PAGES(&mm);
-	int	page_size = MM_PAGE_SIZE(&mm);
+	int num_of_pages = MM_NUM_OF_PAGES(mm);
+	int	page_size = MM_PAGE_SIZE(mm);
 
-	printf("DATA: ");
-	print_BYTE_binary(MM_DATA(&mm));
+	printf("DATA:\n");
+	print_BYTE_binary(MM_DATA(mm));
 
 	printf("NUM OF PAGES: %d\n", num_of_pages);
 	printf("PAGE SIZE: %d\n", page_size);
@@ -209,6 +209,10 @@ void del_process(app_data_t* app_data, procid_t pid)
 	else if (err == ecNotFound)
 	{
 		printf("Process %u was not found", pid);
+	}
+	else
+	{
+		printf("Process %u was deleted", pid);
 	}
 
 	//we just deal with error printing here
