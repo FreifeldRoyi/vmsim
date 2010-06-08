@@ -9,67 +9,71 @@
 
 static BOOL command_handler(ui_cmd_t* cmd, app_data_t* app_data)
 {
-	BOOL to_return = FALSE;
+	BOOL to_return = TRUE;
 
+	if (!strcmp("exit", cmd -> command))
+	{
+		to_return = FALSE;
+	}
 	if (!strcmp("createProcess", cmd -> command))
 	{
-		to_return = do_create_process(cmd, app_data);
+		do_create_process(cmd, app_data);
 	}
 	else if (!strcmp("delProcess", cmd -> command))
 	{
-		to_return = do_del_process(cmd, app_data);
+		do_del_process(cmd, app_data);
 	}
 	else if (!strcmp("read", cmd -> command))
 	{
-		to_return = do_read(cmd, app_data);
+		do_read(cmd, app_data);
 	}
 	else if (!strcmp("loopRead", cmd -> command))
 	{
-		to_return = do_loop_read(cmd ,app_data);
+		do_loop_read(cmd ,app_data);
 	}
 	else if (!strcmp("readToFile", cmd -> command))
 	{
-		to_return = do_read_to_file(cmd ,app_data);
+		do_read_to_file(cmd ,app_data);
 	}
 	else if (!strcmp("loopReadToFile", cmd -> command))
 	{
-		to_return = do_loop_read_to_file(cmd ,app_data);
+		do_loop_read_to_file(cmd ,app_data);
 	}
 	else if (!strcmp("write", cmd -> command))
 	{
-		to_return = do_write(cmd ,app_data);
+		do_write(cmd ,app_data);
 	}
 	else if (!strcmp("loopWrite", cmd -> command))
 	{
-		to_return = do_loop_write(cmd ,app_data);
+		do_loop_write(cmd ,app_data);
 	}
 	else if (!strcmp("hitRate", cmd -> command))
 	{
-		to_return = do_hit_rate(cmd ,app_data);
+		do_hit_rate(cmd ,app_data);
 	}
 	else if (!strcmp("printMM", cmd -> command))
 	{
-		to_return = do_print_MM(cmd ,app_data);
+		do_print_MM(cmd ,app_data);
 	}
 	else if (!strcmp("printMMUTable", cmd -> command))
 	{
-		to_return = do_print_MMU_table(cmd ,app_data);
+		do_print_MMU_table(cmd ,app_data);
 	}
 	else if (!strcmp("printRegisters", cmd -> command))
 	{
-		to_return = do_print_registers(cmd ,app_data);
+		do_print_registers(cmd ,app_data);
 	}
 	else if (!strcmp("printHAT", cmd -> command))
 	{
-		to_return = do_print_HAT(cmd ,app_data);
+		do_print_HAT(cmd ,app_data);
 	}
 	else if (!strcmp("monitor", cmd -> command))
 	{
-		to_return = do_monitor(cmd ,app_data);
+		do_monitor(cmd ,app_data);
 	}
 	else if (!strcmp("noMonitor", cmd -> command))
 	{
-		to_return = do_no_monitor(cmd ,app_data);
+		do_no_monitor(cmd ,app_data);
 	}
 	else if (!strcmp("batchFile", cmd -> command))
 	{
@@ -108,6 +112,8 @@ BOOL do_create_process(ui_cmd_t* cmd, app_data_t* app_data)
 	BOOL to_return = FALSE;
 	int pid;
 
+	errcode_t err;
+
 	if (APP_DATA_INIT(app_data))
 	{
 		pid = create_process(app_data);
@@ -115,7 +121,10 @@ BOOL do_create_process(ui_cmd_t* cmd, app_data_t* app_data)
 		if (pid < 0)
 			to_return = FALSE;
 		else
+		{
 			to_return = TRUE;
+			err = process_start(APP_DATA_PROC_CONT(app_data), pid);
+		}
 	}
 	else
 		to_return = FALSE;
@@ -143,13 +152,13 @@ BOOL do_del_process(ui_cmd_t* cmd, app_data_t* app_data)
 			else
 			{
 				to_return = FALSE;
-				printf("Illegal argument");
+				printf("Illegal argument\n");
 			}
 		}
 		else
 		{
 			to_return = FALSE;
-			printf("A proc_id argument is needed");
+			printf("A proc_id argument is needed\n");
 		}
 	}
 	else
@@ -190,7 +199,7 @@ BOOL do_read(ui_cmd_t* cmd, app_data_t* app_data)
 			if (tok_count < 3)
 			{
 				to_return = FALSE;
-				printf("Not enough or bad arguments. usage: read vAddr id amount");
+				printf("Not enough or bad arguments. usage: read vAddr id amount\n");
 			}
 			else
 			{
@@ -201,7 +210,7 @@ BOOL do_read(ui_cmd_t* cmd, app_data_t* app_data)
 		else
 		{
 			to_return = FALSE;
-			printf("Not enough arguments");
+			printf("Not enough arguments\n");
 		}
 	}
 	else
@@ -243,7 +252,7 @@ BOOL do_loop_read(ui_cmd_t* cmd, app_data_t* app_data)
 			if (tok_count < 4)
 			{
 				to_return = FALSE;
-				printf("Not enough or bad arguments. usage: loopRead vAddr id off amount");
+				printf("Not enough or bad arguments. usage: loopRead vAddr id off amount\n");
 			}
 			else
 			{
@@ -254,7 +263,7 @@ BOOL do_loop_read(ui_cmd_t* cmd, app_data_t* app_data)
 		else
 		{
 			to_return = FALSE;
-			printf("Not enough arguments");
+			printf("Not enough arguments\n");
 		}
 	}
 	else
@@ -306,14 +315,14 @@ BOOL do_read_to_file(ui_cmd_t* cmd, app_data_t* app_data)
 				else
 				{
 					to_return = FALSE;
-					printf("Not enough or bad arguments. usage: readToFile vAddr id amount filename");
+					printf("Not enough or bad arguments. usage: readToFile vAddr id amount filename\n");
 				}
 			}
 		}
 		else
 		{
 			to_return = FALSE;
-			printf("Not enough arguments");
+			printf("Not enough arguments\n");
 		}
 	}
 	else
@@ -365,14 +374,14 @@ BOOL do_loop_read_to_file(ui_cmd_t* cmd, app_data_t* app_data)
 				else
 				{
 					to_return = FALSE;
-					printf("Not enough or bad arguments. usage: loopReadToFile vAddr id off amount filename");
+					printf("Not enough or bad arguments. usage: loopReadToFile vAddr id off amount filename\n");
 				}
 			}
 		}
 		else
 		{
 			to_return = FALSE;
-			printf("Not enough or bad arguments. usage: loopReadToFile vAddr id off amount filename");
+			printf("Not enough or bad arguments. usage: loopReadToFile vAddr id off amount filename\n");
 		}
 	}
 	else
@@ -427,14 +436,14 @@ BOOL do_write(ui_cmd_t* cmd, app_data_t* app_data)
 				else
 				{
 					to_return = FALSE;
-					printf("Not enough or bad arguments. usage: write vAddr id s");
+					printf("Not enough or bad arguments. usage: write vAddr id s\n");
 				}
 			}
 		}
 		else
 		{
 			to_return = FALSE;
-			printf("Not enough or bad arguments. usage: write vAddr id s");
+			printf("Not enough or bad arguments. usage: write vAddr id s\n");
 		}
 	}
 	else
@@ -488,7 +497,7 @@ BOOL do_loop_write(ui_cmd_t* cmd, app_data_t* app_data)
 			if (tok_count < 5)
 			{
 				to_return = FALSE;
-				printf("Not enough or bad arguments. usage: loopWrite vAddr id c off amount");
+				printf("Not enough or bad arguments. usage: loopWrite vAddr id c off amount\n");
 			}
 			else
 			{
@@ -498,7 +507,7 @@ BOOL do_loop_write(ui_cmd_t* cmd, app_data_t* app_data)
 		else
 		{
 			to_return = FALSE;
-			printf("Not enough or bad arguments. usage: loopWrite vAddr id c off amount");
+			printf("Not enough or bad arguments. usage: loopWrite vAddr id c off amount\n");
 		}
 	}
 	else
@@ -609,7 +618,7 @@ BOOL do_batch_file(ui_cmd_t* cmd, app_data_t* app_data)
 
 		if (f == NULL)
 		{
-			printf("Can't open the file specified: %s", cmd -> param);
+			printf("Can't open the file specified: %s\n", cmd -> param);
 			to_return = TRUE; //see comment below about done flag
 		}
 		else
@@ -678,18 +687,11 @@ int app_main(int argc, char** argv)
 	{
 		cmd = get_command();
 
-		if (!strcmp("exit", cmd.command))
-		{
-			done = TRUE;
-		}
-		else
-		{
-			cmd_ret = command_handler(&cmd, &app_data);
+		cmd_ret = command_handler(&cmd, &app_data);
 
-			// ohhhh... this is ugly
-			if (!cmd_ret && strcmp("batchFile", cmd.command))
-				done = TRUE;
-		}
+		// ohhhh... this is ugly
+		if (!cmd_ret && strcmp("batchFile", cmd.command))
+			done = TRUE;
 	} while (!done);
 
 	if (app_data.initialized)
