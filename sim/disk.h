@@ -5,7 +5,7 @@
 
 #include "util/bitmap.h"
 #include "util/vmsim_types.h"
-#include "util/rwlock.h"
+#include "util/locks.h"
 
 typedef struct {
 	BYTE* data;

@@ -12,8 +12,6 @@
 #include <malloc.h>
 #include <assert.h>
 
-#define BLOCK_SIZE 8 //TODO initial size.file doesn't contain this info
-
 static void print_ipt_entry(ipt_entry_t entry)
 {
 	if (!(entry.page_data.valid))
@@ -139,7 +137,7 @@ BOOL load_app_data(char* file_name, app_data_t* app_data)
 	APP_DATA_NUM_OF_PROC_PAGE(app_data) = n_proc_pages;
 	APP_DATA_SHIFT_CLOCK(app_data) = shift_clock;
 
-	disk_init(disk, n_page_disk, page_size,  n_proc_pages/* TODO block size maybe a different size??*/);
+	disk_init(disk, n_page_disk, page_size,  n_proc_pages);
 	mm_init(mm, n_page_mm, page_size);
 	mmu_init(mmu, mm, disk, shift_clock);
 

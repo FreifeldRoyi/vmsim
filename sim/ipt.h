@@ -4,7 +4,7 @@
 /**Inverse page-table as described in the assignment.*/
 
 #include "util/vmsim_types.h"
-#include "util/rwlock.h"
+#include "util/locks.h"
 #include "util/queue.h"
 
 typedef enum {refNone, refRead, refWrite} ipt_ref_t;

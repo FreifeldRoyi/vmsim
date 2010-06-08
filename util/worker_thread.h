@@ -5,7 +5,7 @@
  * same function until it's stopped.*/
 
 #include "vmsim_types.h"
-#include "rwlock.h"
+#include "locks.h"
 #include <pthread.h>
 
 /*a worker-thread function.*/

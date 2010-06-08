@@ -9,7 +9,7 @@
 #define MM_H_
 
 #include "util/vmsim_types.h"
-#include "util/rwlock.h"
+#include "util/locks.h"
 
 typedef struct _mm_t
 {
