@@ -39,6 +39,9 @@ errcode_t mmu_init(mmu_t* mmu, mm_t* mem, disk_t* disk, int aging_freq)
 	mmu->disk = disk;
 	mmu->aging_freq = aging_freq;
 
+	memset(&mmu->stats, 0, sizeof(mmu->stats));
+	rwlock_init(&mmu->stats_lock);
+
 	return ecSuccess;
 }
 
@@ -161,11 +164,18 @@ static errcode_t mmu_pin_page(	mmu_t* mmu, virt_addr_t page)
 	if (ipt_has_translation(&mmu->mem_ipt, page))
 	{
 		INFO2("IPT has a mapping for (%d:%d)\n", VIRT_ADDR_PID(page), VIRT_ADDR_PAGE(page));
+		rwlock_acquire_write(&mmu->stats_lock);
+		++mmu->stats.hits;
+		++mmu->stats.nrefs;
+		rwlock_release_write(&mmu->stats_lock);
 		return ecSuccess;
 	}
 	else
 	{
 		INFO2("No mapping for (%d:%d) - A pagefault has occured.\n", VIRT_ADDR_PID(page), VIRT_ADDR_PAGE(page));
+		rwlock_acquire_write(&mmu->stats_lock);
+		++mmu->stats.nrefs;
+		rwlock_release_write(&mmu->stats_lock);
 		return prm_pagefault(page);
 	}
 }
@@ -330,6 +340,15 @@ void mmu_block_alloc_free(mmu_t* mmu)
 void mmu_release_alloc_free(mmu_t* mmu)
 {
 	MMU_RELEASE_DISKMAP(mmu);
+}
+
+mmu_stats_t mmu_get_stats(mmu_t* mmu)
+{
+	mmu_stats_t ret;
+	rwlock_acquire_read(&mmu->stats_lock);
+	ret = mmu->stats;
+	rwlock_release_read(&mmu->stats_lock);
+	return ret;
 }
 
 void mmu_destroy(mmu_t* mmu)

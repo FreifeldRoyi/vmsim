@@ -4,7 +4,7 @@
 #include <string.h>
 #include <stdlib.h>
 
-/**int main()
+int main()
 {
 	add_queue_tests();
 	add_bitmap_tests();
@@ -17,8 +17,8 @@
 	cunit_run_suite();
 	cunit_destroy();
 	return 0;
-}*/
-
+}
+/*
 int main(int argc, char** argv)
 {
 	//FILE* f;
@@ -30,4 +30,4 @@ int main(int argc, char** argv)
 	app_main(argc,argv);
 
 	return 0;
-}
+}*/
