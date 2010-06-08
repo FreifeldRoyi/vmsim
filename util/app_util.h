@@ -64,17 +64,25 @@ int create_process(app_data_t* app_data);
 void del_process(app_data_t* app_data, procid_t pid);
 
 /**
- * finds process with the given ID.
+ * sends a read message to a process
+ * will read <i>amount</i> of bytes or less
  *
- * if file_name is NULL, prints to stdout
- * else prints to specified file
- * offset > 0 => loop
- * offset < 0 => normal read
+ * @param proc_cont - the process container
+ * @param vaddr - the virtual address
+ * @param id - the id of the process to send to
+ * @param amount - the amount to read
  */
-void sim_read(proc_cont_t* proc_cont, int vaddr, int id, int off,int amount, char* file_name);
+void read_process(proc_cont_t* proc_cont, int vaddr, int id, int amount);
 
-void sim_write(proc_cont_t* proc_cont, int vaddr, int id, char* s, int off,int amount);
+void loop_read_process(proc_cont_t* proc_cont, int vaddr, int id, int off, int amount);
 
+void read_to_file_process(proc_cont_t* proc_cont, int vaddr, int id, int amount, char* file_name);
+
+void loop_read_to_file_process(proc_cont_t* proc_cont, int vaddr, int id, int off, int amount, char* file_name);
+
+void write_process(proc_cont_t* proc_cont, int vaddr, int id, char* s);
+
+void loop_write_process(proc_cont_t* proc_cont, int vaddr, int id, char c, int off, int amount);
 /**
  *prints the registers of the aging algorithm
  */

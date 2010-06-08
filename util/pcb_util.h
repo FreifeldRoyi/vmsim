@@ -135,5 +135,10 @@ void post_destroy(post_t* post);
  */
 errcode_t process_dealloc(proc_cont_t* prc, procid_t pid);
 
+/**
+ * TODO documentation
+ */
+errcode_t sim_read(proc_cont_t* proc_cont, virt_addr_t* vAddr, int off,int amount, char* file_name);
+
 
 #endif /* PCB_UTIL_H_ */

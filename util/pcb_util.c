@@ -11,20 +11,19 @@
 
 errcode_t compose_mail(process_t* prc, post_t* post)
 {
-	assert(prc != NULL);
 	assert(post != NULL);
 
 	pthread_mutex_lock(&PROC_MAIL_LOCK(prc));
-	/*if (prc == NULL)
+	if (prc == NULL)
 	{
 		pthread_mutex_unlock(&PROC_MAIL_LOCK(prc));
 		return ecFail;
-	}*/
+	}
 
 	if (PROC_DEL(prc)) //process got exit flag
 	{
 		pthread_mutex_unlock(&PROC_MAIL_LOCK(prc));
-		return ecFail;
+		return ecNotFound;
 	}
 
 	queue_push(PROC_MAIL(prc), post);
@@ -101,4 +100,44 @@ errcode_t process_dealloc(proc_cont_t* proc_cont, procid_t pid)
 	pthread_cond_signal(&PROC_CONT_DEL(proc_cont));
 
 	return ecSuccess;
+}
+
+errcode_t sim_read(proc_cont_t* proc_cont, virt_addr_t* vAddr, int off,int amount, char* file_name)
+{
+	int page_size = PROC_CONT_MMU(proc_cont) -> mem -> page_size;
+	FILE* f;
+	errcode_t err = ecSuccess;
+
+	BYTE* buf = (BYTE*)malloc((amount * off + 1) * sizeof(BYTE));
+	int multiplier = 0;
+	int i;
+
+	assert(off > 0);
+	assert(vAddr -> pid >= 0);
+	assert(amount > 0);
+
+	while (multiplier < amount - 1 && off * multiplier < page_size && err == ecSuccess)
+	{
+		err = mmu_read(PROC_CONT_MMU(proc_cont), *vAddr, off * multiplier, 1, &buf[multiplier]); //TODO check correctness
+		++multiplier;
+	}
+
+	if (err == ecSuccess)
+	{
+		if (file_name == NULL)
+			f = stdout;
+		else
+			f = fopen(file_name, "w+"); //TODO maybe a different mode
+
+		for (i = 0; i < multiplier; ++i)
+		{
+			fprintf(f, "Char %d: %c\n", i, buf[i]);
+		}
+
+		if (file_name != NULL)
+			fclose(f);
+	}
+	free(buf);
+
+	return err;
 }

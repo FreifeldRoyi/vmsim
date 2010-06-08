@@ -194,9 +194,7 @@ BOOL do_read(ui_cmd_t* cmd, app_data_t* app_data)
 			}
 			else
 			{
-				sim_read(APP_DATA_PROC_CONT(app_data), params[0], params[1], 1,params[2], NULL);
-				//TODO supposed to use read function, but job description sux
-				//implement a function read(vaddr,amount) what about id???
+				read_process(APP_DATA_PROC_CONT(app_data), params[0], params[1], params[2]);
 				to_return = TRUE;
 			}
 		}
@@ -249,9 +247,7 @@ BOOL do_loop_read(ui_cmd_t* cmd, app_data_t* app_data)
 			}
 			else
 			{
-				sim_read(APP_DATA_PROC_CONT(app_data), params[0], params[1], params[2], params[3], NULL);
-				//TODO supposed to use read function, but job description sux
-				//implement a function read(vaddr,amount) what about id???
+				loop_read_process(APP_DATA_PROC_CONT(app_data), params[0], params[1], params[2], params[3]);
 				to_return = TRUE;
 			}
 		}
@@ -304,9 +300,7 @@ BOOL do_read_to_file(ui_cmd_t* cmd, app_data_t* app_data)
 				{
 					++tok_count;
 
-					sim_read(APP_DATA_PROC_CONT(app_data), params[0],params[1], 1, params[2], token);
-					//TODO supposed to use read function, but job description sux
-					//implement a function read(vaddr,amount) what about id???
+					read_to_file_process(APP_DATA_PROC_CONT(app_data), params[0], params[1], params[2], token);
 					to_return = TRUE;
 				}
 				else
@@ -365,9 +359,7 @@ BOOL do_loop_read_to_file(ui_cmd_t* cmd, app_data_t* app_data)
 				{
 					++tok_count;
 
-					sim_read(APP_DATA_PROC_CONT(app_data), params[0],params[1],params[2],params[3],token);
-					//TODO supposed to use read function, but job description sux
-					//implement a function read(vaddr,amount) what about id???
+					loop_read_to_file_process(APP_DATA_PROC_CONT(app_data), params[0], params[1], params[2], params[3], token);
 					to_return = TRUE;
 				}
 				else
@@ -428,7 +420,7 @@ BOOL do_write(ui_cmd_t* cmd, app_data_t* app_data)
 					s = token;
 					++tok_count;
 
-					sim_write(APP_DATA_PROC_CONT(app_data), params[0], params[1], s, 1, -1);
+					write_process(APP_DATA_PROC_CONT(app_data), params[0], params[1], token);
 
 					to_return = TRUE;
 				}
@@ -500,7 +492,7 @@ BOOL do_loop_write(ui_cmd_t* cmd, app_data_t* app_data)
 			}
 			else
 			{
-				sim_write(APP_DATA_PROC_CONT(app_data), params[0], params[1], s, params[2], params[3]);
+				loop_write_process(APP_DATA_PROC_CONT(app_data), params[0], params[1], s[0], params[2], params[3]);
 			}
 		}
 		else
