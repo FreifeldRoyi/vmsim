@@ -15,11 +15,6 @@
 #define READ_END(_mm) rwlock_release_read(&MM_LOCK(mm))
 #define WRITE_END(_mm) rwlock_release_write(&MM_LOCK(mm))
 
-static BOOL is_page_allocated(mm_t* mm, int page)
-{
-	return (page >= 0) && bitmap_get(&MM_BITMAP(mm), page);
-}
-
 static BYTE* get_page_start(mm_t* mm, int page)
 {
 	return &MM_DATA(mm)[page * MM_PAGE_SIZE(mm)];
@@ -37,45 +32,49 @@ errcode_t mm_init(mm_t* mm, int npages, int pagesize)
 	MM_NUM_OF_PAGES(mm) = npages;
 	MM_PAGE_SIZE(mm) = pagesize;
 
-	bitmap_init(&MM_BITMAP(mm), npages);
+	//bitmap_init(&(MM_BITMAP(mm)), npages);
 	rwlock_init(&MM_LOCK(mm));
 
 	return ecSuccess;
 }
 
-errcode_t mm_get_page(mm_t* mm, int page, BYTE* page_data)
+errcode_t mm_read(mm_t* mm, int page, BYTE* buf)
 {
 	READ_START(mm);
+
 	assert(MM_DATA(mm) != NULL);
 	assert(mm -> orig_addr == MM_DATA(mm));
 	assert(page < MM_NUM_OF_PAGES(mm));
 
-	if (!is_page_allocated(mm, page))
+	/*if (!is_page_allocated(mm, page))
 	{
 		READ_END(mm);
 		return ecFail;
-	}
+	}*/
 
-	memcpy(page_data, get_page_start(mm, page), MM_PAGE_SIZE(mm));
+	memcpy(buf, get_page_start(mm,page), MM_PAGE_SIZE(mm));
 	READ_END(mm);
+
 	return ecSuccess;
 }
 
-errcode_t mm_set_page(mm_t* mm, int page, BYTE* page_data)
+errcode_t mm_write(mm_t* mm, int page, BYTE* buf)
 {
 	WRITE_START(mm);
+
 	assert(MM_DATA(mm) != NULL);
-	assert(mm->orig_addr == MM_DATA(mm));
+	assert(mm -> orig_addr == MM_DATA(mm));
 	assert(page < MM_NUM_OF_PAGES(mm));
 
-	if (!is_page_allocated(mm, page))
+	/*if (is_page_allocated(mm, page))
 	{
 		WRITE_END(mm);
 		return ecFail;
-	}
+	}*/
 
-	memcpy(get_page_start(mm, page), page_data, MM_PAGE_SIZE(mm));
+	memcpy(get_page_start(mm, page), buf, MM_PAGE_SIZE(mm));
 	WRITE_END(mm);
+
 	return ecSuccess;
 }
 
@@ -87,7 +86,7 @@ void mm_destroy(mm_t* mm)
 	free(MM_DATA(mm));
 	MM_DATA(mm) = NULL;
 
-	bitmap_destroy(&MM_BITMAP(mm));
+	//bitmap_destroy(&MM_BITMAP(mm));
 	WRITE_END(mm);
 	rwlock_destroy(&MM_LOCK(mm));
 }
