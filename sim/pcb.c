@@ -146,7 +146,6 @@ errcode_t process_destroy(proc_cont_t* proc_cont, procid_t id)
 	PROC_DEL(this_proc) = TRUE;
 
 	pthread_cond_wait(&PROC_CONT_DEL(proc_cont), &PROC_CONT_MTX(proc_cont));
-	//TODO add here code for sleeping
 	pthread_mutex_unlock(&PROC_CONT_MTX(proc_cont));
 
 	//READ_END(&PROC_CONT_LOCK(proc_cont));
@@ -209,27 +208,27 @@ BOOL process_func(void* arg)
 	switch (post->func)
 	{
 		case fcRead:
-			//TODO smth
+			read_decoder(cont, post);
 			break;
 
 		case fcLoopRead:
-			//TODO smth
+			loop_read_decoder(cont, post);
 			break;
 
 		case fcReadToFile:
-			//TODO smth
+			read_file_decoder(cont, post);
 			break;
 
 		case fcLoopReadToFile:
-			//TODO smth
+			loop_read_file_decoder(cont, post);
 			break;
 
 		case fcWrite:
-			//TODO smth
+			write_decoder(cont, post);
 			break;
 
 		case fcLoopWrite:
-			//TODO smth
+			loop_write_decoder(cont, post);
 			break;
 
 		case fcDel:
@@ -245,5 +244,4 @@ BOOL process_func(void* arg)
 	post = NULL;
 
 	return to_return;
-	//TODO implement
 }

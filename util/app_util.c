@@ -8,6 +8,7 @@
 #include "app_util.h"
 #include "sim/prm.h"
 #include "sim/aging_daemon.h"
+#include "logger.h"
 #include <string.h>
 #include <malloc.h>
 #include <assert.h>
@@ -88,6 +89,25 @@ void print_MM(mm_t* mm)
 
 	//printf("BITMAP: ");
 	//print_bitmap_binary(&MM_BITMAP(&mm));
+}
+
+void print_hit_rate(mmu_t* mmu)
+{
+	mmu_stats_t stats = mmu_get_stats(mmu);
+	float hitrate = (float)stats.hits/ (float)stats.nrefs;
+	assert(hitrate <= 1.0f);
+	assert(hitrate >= 0.0f);
+	printf("Hitrate is %f\n", hitrate);
+}
+
+void monitor_on()
+{
+	log_set_level(lvInfo);
+}
+
+void monitor_off()
+{
+	log_set_level(lvError);
 }
 
 BOOL load_app_data(char* file_name, app_data_t* app_data)
@@ -348,7 +368,7 @@ void write_process(proc_cont_t* proc_cont, int vaddr, int id, char* s)
 
 	vAddr -> page = vaddr;
 	vAddr -> pid = id;
-	(*amnt) = strlen(s); //TODO really??
+	(*amnt) = strlen(s);
 
 	args[0] = vAddr;
 	args[1] = s; //TODO might be a problem....since file_name may be defined on stack

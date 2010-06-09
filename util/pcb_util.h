@@ -38,6 +38,7 @@ typedef struct
 #define PROCESS(x) ((process_t *) (x))
 #define PROC_PID(x) (x) -> pid
 #define PROC_STRT(x) (x) -> disk_block_start
+#define PROC_SIZE(x) (x) -> block_size
 #define PROC_JUNK(x) (x) -> junk
 #define PROC_DEL(x) (x) -> del
 #define PROC_THRD(x) (x) -> proc_thrd
@@ -121,6 +122,21 @@ void func_arg_destroy(func_arg* arg);
  */
 void post_destroy(post_t* post);
 
+/*
+ * args decoder for read post
+ *
+ * @param proc_cont - the process container
+ * @param post - the post
+ *
+ * @return ecSuccess or some other code on failure
+ */
+errcode_t read_decoder(proc_cont_t* proc_cont, post_t* post);
+errcode_t loop_read_decoder(proc_cont_t* proc_cont, post_t* post);
+errcode_t read_file_decoder(proc_cont_t* proc_cont, post_t* post);
+errcode_t loop_read_file_decoder(proc_cont_t* proc_cont, post_t* post);
+errcode_t write_decoder(proc_cont_t* proc_cont, post_t* post);
+errcode_t loop_write_decoder(proc_cont_t* proc_cont, post_t* post);
+
 /****************************************process functions*******************************/
 
 /**
@@ -138,6 +154,10 @@ errcode_t process_dealloc(proc_cont_t* prc, procid_t pid);
  * TODO documentation
  */
 errcode_t sim_read(proc_cont_t* proc_cont, virt_addr_t* vAddr, int off,int amount, char* file_name);
+
+errcode_t sim_write(proc_cont_t* proc_cont, virt_addr_t* vAddr, unsigned char* s, int amount);
+
+errcode_t sim_loop_write(proc_cont_t* proc_cont, virt_addr_t* vAddr, unsigned char c, int offset,int amount);
 
 
 #endif /* PCB_UTIL_H_ */

@@ -18,8 +18,6 @@ typedef struct _mm_t
 	int npages;
 	int page_size;
 
-	// bitmap_t bitmap; TODO not needed since ipt is used as mm's bitmap
-
 	rwlock_t lock;
 
 	void* orig_addr; //debug
@@ -28,7 +26,6 @@ typedef struct _mm_t
 #define MM(x) ((mm_t *) (x))
 #define MM_DATA(x) (x) -> data
 #define MM_LOCK(x) (x) -> lock
-//#define MM_BITMAP(x) MM((x)) -> bitmap
 #define MM_NUM_OF_PAGES(x) (x) -> npages
 #define MM_PAGE_SIZE(x) (x) -> page_size
 
@@ -73,6 +70,8 @@ errcode_t mm_write(mm_t* mm, int page, BYTE* buf);
 
 /**
  * deallocates the main memory
+ *
+ * @param mm - the main memory to deallocate
  */
 void mm_destroy(mm_t* mm);
 
