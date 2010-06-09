@@ -42,6 +42,8 @@ typedef struct
  */
 void print_MM(mm_t* mm);
 
+void print_hit_rate(mmu_t* mmu);
+
 /**
  * prints the IPT table
  */
@@ -83,6 +85,7 @@ void loop_read_to_file_process(proc_cont_t* proc_cont, int vaddr, int id, int of
 void write_process(proc_cont_t* proc_cont, int vaddr, int id, char* s);
 
 void loop_write_process(proc_cont_t* proc_cont, int vaddr, int id, char c, int off, int amount);
+
 /**
  *prints the registers of the aging algorithm
  */
@@ -96,12 +99,12 @@ void loop_write_process(proc_cont_t* proc_cont, int vaddr, int id, char c, int o
 /**
  * switches the given system to Monitor mode
  */
-//void monitor_on();
+void monitor_on();
 
 /**
  * switches the system to No Monitor mode
  */
-//void monitor_off();
+void monitor_off();
 
 /**
  * loads all application data associated with app_data_t struct

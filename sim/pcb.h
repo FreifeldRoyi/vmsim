@@ -60,6 +60,3 @@ errcode_t process_destroy(proc_cont_t* proc_cont, procid_t id);
 BOOL process_func(void* arg);
 
 #endif /* PCB_H_ */
-
-//TODO add functions
-//TODO sync

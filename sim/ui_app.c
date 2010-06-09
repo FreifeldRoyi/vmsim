@@ -219,7 +219,6 @@ BOOL do_read(ui_cmd_t* cmd, app_data_t* app_data)
 		to_return = FALSE;
 
 	return to_return;
-	//TODO test
 }
 
 BOOL do_loop_read(ui_cmd_t* cmd, app_data_t* app_data)
@@ -272,7 +271,6 @@ BOOL do_loop_read(ui_cmd_t* cmd, app_data_t* app_data)
 		to_return = FALSE;
 
 	return to_return;
-	//TODO implement
 }
 
 BOOL do_read_to_file(ui_cmd_t* cmd, app_data_t* app_data)
@@ -331,7 +329,6 @@ BOOL do_read_to_file(ui_cmd_t* cmd, app_data_t* app_data)
 		to_return = FALSE;
 
 	return to_return;
-	//TODO implement
 }
 
 BOOL do_loop_read_to_file(ui_cmd_t* cmd, app_data_t* app_data)
@@ -390,7 +387,6 @@ BOOL do_loop_read_to_file(ui_cmd_t* cmd, app_data_t* app_data)
 		to_return = FALSE;
 
 	return to_return;
-	//TODO implement
 }
 
 BOOL do_write(ui_cmd_t* cmd, app_data_t* app_data)
@@ -522,11 +518,7 @@ BOOL do_hit_rate(ui_cmd_t* cmd, app_data_t* app_data)
 {
 	if (APP_DATA_INIT(app_data))
 	{
-		mmu_stats_t stats = mmu_get_stats(APP_DATA_MMU(app_data));
-		float hitrate = (float)stats.hits/ (float)stats.nrefs;
-		assert(hitrate <= 1.0f);
-		assert(hitrate >= 0.0f);
-		printf("Hitrate is %f\n", hitrate);
+		print_hit_rate(APP_DATA_MMU(app_data));
 		return TRUE;
 	}
 	else
@@ -581,13 +573,13 @@ BOOL do_print_HAT(ui_cmd_t* cmd, app_data_t* app_data)
 
 BOOL do_monitor(ui_cmd_t* cmd, app_data_t* app_data)
 {
-	log_set_level(lvInfo);
+	monitor_on();
 	return TRUE;
 }
 
 BOOL do_no_monitor(ui_cmd_t* cmd, app_data_t* app_data)
 {
-	log_set_level(lvError);
+	monitor_off();
 	return TRUE;
 }
 
@@ -671,7 +663,6 @@ int app_main(int argc, char** argv)
 
 	if (!load_app_data(argv[1], &app_data))
 	{
-		//TODO add print here
 		return -1;
 	}
 
@@ -690,7 +681,7 @@ int app_main(int argc, char** argv)
 	{
 		free_app_data(&app_data);
 	}
-
+	printf("VMSim has finished it's running. Have a nice day! =)");
 	return 0;
 }
 

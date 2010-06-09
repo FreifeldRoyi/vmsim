@@ -65,6 +65,104 @@ void post_destroy(post_t* post)
 	free(post);
 }
 
+errcode_t read_decoder(proc_cont_t* proc_cont, post_t* post)
+{
+	virt_addr_t* vAddr;
+	int amount;
+
+	assert(post -> n_args == 2);
+	assert(post -> func == fcRead);
+
+	vAddr = (virt_addr_t*)post -> args[0];
+	amount = *(int*)post ->args[1];
+
+	return sim_read(proc_cont, vAddr, 1, amount, NULL);
+}
+
+errcode_t loop_read_decoder(proc_cont_t* proc_cont, post_t* post)
+{
+	virt_addr_t* vAddr;
+	int offset;
+	int amount;
+
+	assert(post -> n_args == 3);
+	assert(post -> func == fcLoopRead);
+
+	vAddr = (virt_addr_t*)post -> args[0];
+	offset = *(int*)post -> args[1];
+	amount = *(int*)post -> args[2];
+
+	return sim_read(proc_cont, vAddr, offset, amount, NULL);
+}
+
+errcode_t read_file_decoder(proc_cont_t* proc_cont, post_t* post)
+{
+	virt_addr_t* vAddr;
+	int amount;
+	char* file_name;
+
+	assert(post -> n_args == 3);
+	assert(post -> func == fcReadToFile);
+
+	vAddr = (virt_addr_t*)post -> args[0];
+	amount = *(int*)post -> args[1];
+	file_name = (char*)post -> args[2];
+
+	return sim_read(proc_cont, vAddr, 1, amount, file_name);
+}
+
+errcode_t loop_read_file_decoder(proc_cont_t* proc_cont, post_t* post)
+{
+	virt_addr_t* vAddr;
+	int offset;
+	int amount;
+	char* file_name;
+
+	assert(post -> n_args == 4);
+	assert(post -> func == fcLoopReadToFile);
+
+	vAddr = (virt_addr_t*)post -> args[0];
+	offset = *(int*)post -> args[1];
+	amount = *(int*)post -> args[2];
+	file_name = (char*)post -> args[2];
+
+	return sim_read(proc_cont, vAddr, offset, amount, file_name);
+}
+
+errcode_t write_decoder(proc_cont_t* proc_cont, post_t* post)
+{
+	virt_addr_t* vAddr;
+	unsigned char* s;
+	int amount;
+
+	assert(post -> n_args == 3);
+	assert(post -> func == fcWrite);
+
+	vAddr = (virt_addr_t*)post -> args[0];
+	s = (unsigned char*)post -> args[1];
+	amount = *(int*)post -> args[2];
+
+	return sim_write(proc_cont, vAddr, s, amount);
+}
+
+errcode_t loop_write_decoder(proc_cont_t* proc_cont, post_t* post)
+{
+	virt_addr_t* vAddr;
+	unsigned char c;
+	int off;
+	int amount;
+
+	assert(post -> n_args == 4);
+	assert(post -> func == fcLoopWrite);
+
+	vAddr = (virt_addr_t*)post -> args[0];
+	c = *(unsigned char*)post -> args[1];
+	off = *(int*)post -> args[2];
+	amount = *(int*)post -> args[3];
+
+	return sim_loop_write(proc_cont,vAddr, c, off, amount);
+}
+
 /****************************************process functions*******************************/
 
 errcode_t process_dealloc(proc_cont_t* proc_cont, procid_t pid)
@@ -73,6 +171,9 @@ errcode_t process_dealloc(proc_cont_t* proc_cont, procid_t pid)
 	mmu_t* mmu = PROC_CONT_MMU(proc_cont);
 	disk_t* disk = mmu -> disk;
 	process_t* this_proc = &PROC_CONT_SPEC_PROC(proc_cont, pid);
+	virt_addr_t vAddr;
+	vAddr.page = PROC_STRT(this_proc);
+	vAddr.pid = pid;
 
 	assert(mmu != NULL);
 	assert(disk != NULL);
@@ -92,8 +193,8 @@ errcode_t process_dealloc(proc_cont_t* proc_cont, procid_t pid)
 	pthread_mutex_destroy(&PROC_MAIL_LOCK(this_proc));
 	pthread_cond_destroy(&PROC_COND(this_proc));
 
+	mmu_free_multiple(mmu, vAddr, PROC_SIZE(this_proc));
 	disk_free_process_block(disk, PROC_STRT(this_proc));
-	//TODO delete from MM???
 
 	worker_thread_destroy(PROC_THRD(this_proc));
 	PROC_JUNK(this_proc) = TRUE;
@@ -139,6 +240,45 @@ errcode_t sim_read(proc_cont_t* proc_cont, virt_addr_t* vAddr, int off,int amoun
 			fclose(f);
 	}
 	free(buf);
+
+	return err;
+}
+
+errcode_t sim_write(proc_cont_t* proc_cont, virt_addr_t* vAddr, unsigned char* s, int amount)
+{
+	unsigned multiplier = 0;
+	int page_size = PROC_CONT_MMU(proc_cont) -> mem -> page_size;
+
+	errcode_t err = ecSuccess;
+
+	assert(vAddr -> pid >= 0);
+	assert(amount > 0);
+
+	while (multiplier < amount && multiplier < page_size && err == ecSuccess)
+	{
+		err = mmu_write(PROC_CONT_MMU(proc_cont), *vAddr, multiplier, 1, &s[multiplier]);
+		++multiplier;
+	}
+
+	return err;
+}
+
+errcode_t sim_loop_write(proc_cont_t* proc_cont, virt_addr_t* vAddr, unsigned char c, int offset,int amount)
+{
+	unsigned multiplier = 0;
+	int page_size = PROC_CONT_MMU(proc_cont) -> mem -> page_size;
+
+	errcode_t err = ecSuccess;
+
+	assert(offset > 0);
+	assert(vAddr -> pid >= 0);
+	assert(amount > 0);
+
+	while (multiplier < amount && offset * multiplier < page_size && err == ecSuccess)
+	{
+		err = mmu_write(PROC_CONT_MMU(proc_cont), *vAddr, offset * multiplier, 1, &c);
+		++multiplier;
+	}
 
 	return err;
 }
