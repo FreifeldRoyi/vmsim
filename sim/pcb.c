@@ -44,6 +44,7 @@ int init_process(proc_cont_t* proc_cont)
 	process_t* prc;
 	errcode_t errs;
 	int page;
+	virt_addr_t first_process_address;
 	
 	assert(proc_cont != NULL);
 
@@ -69,8 +70,18 @@ int init_process(proc_cont_t* proc_cont)
 	//init disk info
 	assert(PROC_CONT_MMU(proc_cont) -> disk != NULL);
 	errs = disk_alloc_process_block(PROC_CONT_MMU(proc_cont) -> disk, &page);
+	if (errs != ecSuccess)
+	{
+		pthread_mutex_unlock(&PROC_CONT_MTX(proc_cont));
+		free(prc);
+		return -2;
+	}
 
-	if (errs == ecFail)
+	VIRT_ADDR_PID(first_process_address) = i;
+	VIRT_ADDR_PAGE(first_process_address) = 0;
+	///TODO there has to be a better way to find the process block size.
+	errs = mmu_alloc_multiple(PROC_CONT_MMU(proc_cont),first_process_address, proc_cont->mmu->disk->process_block_size, page);
+	if (errs != ecSuccess)
 	{
 		pthread_mutex_unlock(&PROC_CONT_MTX(proc_cont));
 		free(prc);
