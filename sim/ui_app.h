@@ -62,6 +62,8 @@ BOOL do_monitor(ui_cmd_t* cmd, app_data_t* app_data);
 
 BOOL do_no_monitor(ui_cmd_t* cmd, app_data_t* app_data);
 
+BOOL do_debug_mode(ui_cmd_t* cmd, app_data_t* app_data);
+
 BOOL do_batch_file(ui_cmd_t* cmd, app_data_t* app_data);
 
 /**

@@ -77,6 +77,10 @@ static BOOL command_handler(ui_cmd_t* cmd, app_data_t* app_data)
 	{
 		do_no_monitor(cmd ,app_data);
 	}
+	else if (!strcmp("debug", cmd -> command))
+	{
+		do_debug_mode(cmd, app_data);
+	}
 	else if (!strcmp("batchFile", cmd -> command))
 	{
 		to_return = do_batch_file(cmd ,app_data);
@@ -400,20 +404,26 @@ BOOL do_write(ui_cmd_t* cmd, app_data_t* app_data)
 	int tok_count = 0;
 
 	char* token;
-
+	DEBUG2("cmd->command = %s\ncmd->param = %s\n", cmd->command, cmd->param);
 	if (APP_DATA_INIT(app_data))
 	{
 		if (strlen(cmd->param) != 0)
 		{
 			token = strtok(cmd->param," ");
+
 			while (err > 0 && token != NULL && tok_count < 2)
 			{
 				err = sscanf(token, " %u ", &params[tok_count]);
 
 				if (err > 0)
 				{
+					DEBUG1("err = %d\n", err);
+					DEBUG1("before token = %s\n", token);
+					DEBUG1("before ++tok_count = %d\n", tok_count);
 					++tok_count;
+					DEBUG1("after ++tok_count = %d\n", tok_count);
 					token = strtok(NULL," ");
+					DEBUG1("after token = %s\n", token);
 				}
 				else
 					to_return = FALSE;
@@ -427,6 +437,7 @@ BOOL do_write(ui_cmd_t* cmd, app_data_t* app_data)
 					s = token;
 					++tok_count;
 
+					DEBUG3("Calling write_process with: %d %d %s\n", params[0], params[1], token);
 					write_process(APP_DATA_PROC_CONT(app_data), params[0], params[1], token);
 
 					to_return = TRUE;
@@ -583,6 +594,12 @@ BOOL do_no_monitor(ui_cmd_t* cmd, app_data_t* app_data)
 	return TRUE;
 }
 
+BOOL do_debug_mode(ui_cmd_t* cmd, app_data_t* app_data)
+{
+	debug_on();
+	return TRUE;
+}
+
 BOOL do_batch_file(ui_cmd_t* cmd, app_data_t* app_data)
 {
 	BOOL to_return = FALSE;
@@ -681,7 +698,7 @@ int app_main(int argc, char** argv)
 	{
 		free_app_data(&app_data);
 	}
-	printf("VMSim has finished it's running. Have a nice day! =)");
+	printf("VMSim has finished. Have a nice day! =)");
 	return 0;
 }
 

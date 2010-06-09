@@ -68,7 +68,7 @@ void print_MMU_table(ipt_t* table)
 	int i,tbl_size = table->size;
 	ipt_entry_t *entries = table->entries;
 	printf("NOTE\n----\nentries will be printed as follows: (pid, page_num, dirty_bit, aging_reference_bit, next, prev)"
-			"for free (unused) pages \"(free)\" will be printed\n");
+			"\nfor free (unused) pages \"(free)\" will be printed\n");
 
 	for (i = 0; i < tbl_size; ++i)
 	{
@@ -103,11 +103,19 @@ void print_hit_rate(mmu_t* mmu)
 void monitor_on()
 {
 	log_set_level(lvInfo);
+	INFO("Logger level was set to Info\n");
 }
 
 void monitor_off()
 {
+	INFO("Logger level will now set to Error");
 	log_set_level(lvError);
+}
+
+void debug_on()
+{
+	log_set_level(lvDebug);
+	INFO("Logger level was set to Debug\n");
 }
 
 BOOL load_app_data(char* file_name, app_data_t* app_data)
