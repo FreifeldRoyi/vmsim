@@ -40,13 +40,22 @@ static void print_BYTE_binary(BYTE* byte)
 {
 	int i;
 
-	for (i = BYTE_SIZE - 1; i <= 0; --i)
+	for (i = BYTE_SIZE - 1; i >= 0; --i)
 	{
 		if ((1 << i) & (*byte))
+		{
 			printf("1");
+		}
 		else
+		{
 			printf("0");
+		}
 	}
+}
+
+static void print_char_BYTE(BYTE* byte)
+{
+	printf("%c",(*byte));
 }
 
 static void print_bitmap_binary(bitmap_t* bitmap)
@@ -78,11 +87,23 @@ void print_MMU_table(ipt_t* table)
 
 void print_MM(mm_t* mm)
 {
+	int i = 0;
 	int num_of_pages = MM_NUM_OF_PAGES(mm);
 	int	page_size = MM_PAGE_SIZE(mm);
 
-	printf("DATA:\n");
-	print_BYTE_binary(MM_DATA(mm));
+	printf("BINARY DATA:\n");
+	for (i = 0; i < num_of_pages; ++i)
+	{
+		print_BYTE_binary(&(MM_DATA(mm))[i]);
+		printf("\n");
+	}
+
+	printf("CHAR DATA:\n");
+	for (i = 0; i < num_of_pages; ++i)
+	{
+		print_char_BYTE(&(MM_DATA(mm))[i]);
+		printf("\n");
+	}
 
 	printf("NUM OF PAGES: %d\n", num_of_pages);
 	printf("PAGE SIZE: %d\n", page_size);
