@@ -106,6 +106,8 @@ void monitor_on();
  */
 void monitor_off();
 
+void debug_on();
+
 /**
  * loads all application data associated with app_data_t struct
  * app_data should not be initialized or NULLified
