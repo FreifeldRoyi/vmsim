@@ -108,7 +108,7 @@ ui_cmd_t get_command()
 	if (sep == '\n')
 		return ret;
 
-	scanf("%s", ret.param);
+	fgets(ret.param, FILENAME_MAX, stdin);
 
 	return ret;
 }
@@ -404,7 +404,7 @@ BOOL do_write(ui_cmd_t* cmd, app_data_t* app_data)
 	int tok_count = 0;
 
 	char* token;
-	DEBUG2("cmd->command = %s\ncmd->param = %s\n", cmd->command, cmd->param);
+
 	if (APP_DATA_INIT(app_data))
 	{
 		if (strlen(cmd->param) != 0)
@@ -428,9 +428,9 @@ BOOL do_write(ui_cmd_t* cmd, app_data_t* app_data)
 				else
 					to_return = FALSE;
 			}
-			if (tok_count < 2)
+			if (tok_count == 2)
 			{
-				token = strtok(NULL, " ");
+				//token = strtok(NULL, " ");
 
 				if (token != NULL)
 				{
@@ -698,7 +698,7 @@ int app_main(int argc, char** argv)
 	{
 		free_app_data(&app_data);
 	}
-	printf("VMSim has finished. Have a nice day! =)");
+	printf("VMSim has finished. Have a nice day! =)\n");
 	return 0;
 }
 

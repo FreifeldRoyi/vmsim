@@ -6,6 +6,7 @@
  */
 
 #include "pcb.h"
+#include "util/logger.h"
 #include <assert.h>
 #include <malloc.h>
 #include <strings.h>
@@ -205,6 +206,7 @@ BOOL process_func(void* arg)
 	post = queue_pop(mail_box);
 	pthread_mutex_unlock(&PROC_MAIL_LOCK(this_proc));
 
+	INFO1("Process %d has a job to perform\n",ARG_PID(arguments));
 	switch (post->func)
 	{
 		case fcRead:

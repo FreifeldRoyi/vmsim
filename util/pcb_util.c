@@ -6,6 +6,7 @@
  */
 
 #include "pcb_util.h"
+#include "logger.h"
 #include <malloc.h>
 #include <assert.h>
 
@@ -256,6 +257,7 @@ errcode_t sim_write(proc_cont_t* proc_cont, virt_addr_t* vAddr, unsigned char* s
 
 	while (multiplier < amount && multiplier < page_size && err == ecSuccess)
 	{
+		INFO1("Trying to write page %d\n", multiplier);
 		err = mmu_write(PROC_CONT_MMU(proc_cont), *vAddr, multiplier, 1, &s[multiplier]);
 		++multiplier;
 	}
