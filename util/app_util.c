@@ -53,23 +53,21 @@ static void print_BYTE_binary(BYTE* byte)
 	}
 }
 
-static void print_char_BYTE(BYTE* byte)
+static void print_BYTE_hexa(BYTE* byte)
 {
-	printf("%c",(*byte));
+	BYTE print = *byte;
+	printf("0x%x", print);
 }
 
-static void print_bitmap_binary(bitmap_t* bitmap)
+static void print_BYTE_int(BYTE* byte)
 {
-	int i;
+	BYTE print = *byte;
+	printf("%d", print);
+}
 
-	for (i = 0; i < bitmap->size; ++i)
-	{
-		printf("[%d]: ", i);
-		print_BYTE_binary(&bitmap->data[i]);
-		printf("\n");
-	}
-
-	printf("\n");
+static void print_BYTE_char(BYTE* byte)
+{
+	printf("%c",(*byte));
 }
 
 void print_MMU_table(ipt_t* table)
@@ -91,25 +89,23 @@ void print_MM(mm_t* mm)
 	int num_of_pages = MM_NUM_OF_PAGES(mm);
 	int	page_size = MM_PAGE_SIZE(mm);
 
-	printf("BINARY DATA:\n");
+	printf("\nMain Memory\n-----------\n\n");
+	printf("DATA:\n\n");
+	printf("Binary     Hex    Char   Integer\n");
+	printf("--------   ----   ----   -------\n");
 	for (i = 0; i < num_of_pages; ++i)
 	{
 		print_BYTE_binary(&(MM_DATA(mm))[i]);
+		printf("   ");
+		print_BYTE_hexa(&(MM_DATA(mm))[i]);
+		printf("   ");
+		print_BYTE_char(&(MM_DATA(mm))[i]);
+		printf("      ");
+		print_BYTE_int(&(MM_DATA(mm))[i]);
 		printf("\n");
 	}
 
-	printf("CHAR DATA:\n");
-	for (i = 0; i < num_of_pages; ++i)
-	{
-		print_char_BYTE(&(MM_DATA(mm))[i]);
-		printf("\n");
-	}
-
-	printf("NUM OF PAGES: %d\n", num_of_pages);
-	printf("PAGE SIZE: %d\n", page_size);
-
-	//printf("BITMAP: ");
-	//print_bitmap_binary(&MM_BITMAP(&mm));
+	printf("\nNUM OF PAGES: %d\n\nPAGE_SIZE: %d\n\n", num_of_pages,page_size);
 }
 
 void print_hit_rate(mmu_t* mmu)
@@ -152,8 +148,8 @@ BOOL load_app_data(char* file_name, app_data_t* app_data)
 	unsigned shift_clock;
 
 	mm_t* mm = (mm_t*)malloc(sizeof(mm_t));
-	disk_t* disk = (disk_t*)malloc(sizeof(disk_t));;
-	mmu_t* mmu = (mmu_t*)malloc(sizeof(mmu_t));;
+	disk_t* disk = (disk_t*)malloc(sizeof(disk_t));
+	mmu_t* mmu = (mmu_t*)malloc(sizeof(mmu_t));
 
 	assert(app_data != NULL);
 	assert(mm != NULL);
@@ -210,6 +206,9 @@ void free_app_data(app_data_t* app_data)
 {
 	proc_cont_t* proc_cont = APP_DATA_PROC_CONT(app_data);
 	mmu_t* mmu = PROC_CONT_MMU(proc_cont);
+
+	prm_destroy();
+	aging_daemon_stop();
 
 	//TODO NOTE: if mm and disk are destroyed within the mmu delete the next piece of code
 	//delete
@@ -288,8 +287,12 @@ void read_process(proc_cont_t* proc_cont, int vaddr, int id, int amount)
 	post = create_post(fcRead, args, 2);
 	assert(post != NULL);
 
-	err = compose_mail(&PROC_CONT_SPEC_PROC(proc_cont, id),post);
-	assert(err != ecFail);
+	err = compose_mail(proc_cont, id, post);
+	if (err != ecSuccess)
+	{
+		printf("ERROR: couldn't send message\n");
+		post_destroy(post);
+	}
 }
 
 void loop_read_process(proc_cont_t* proc_cont, int vaddr, int id, int off, int amount)
@@ -318,8 +321,12 @@ void loop_read_process(proc_cont_t* proc_cont, int vaddr, int id, int off, int a
 	post = create_post(fcLoopRead, args, 3);
 	assert(post != NULL);
 
-	err = compose_mail(&PROC_CONT_SPEC_PROC(proc_cont, id),post);
-	assert(err != ecFail);
+	err = compose_mail(proc_cont, id, post);
+	if (err != ecSuccess)
+	{
+		printf("ERROR: couldn't send message");
+		post_destroy(post);
+	}
 }
 
 void read_to_file_process(proc_cont_t* proc_cont, int vaddr, int id, int amount, char* file_name)
@@ -349,8 +356,12 @@ void read_to_file_process(proc_cont_t* proc_cont, int vaddr, int id, int amount,
 	post = create_post(fcReadToFile, args, 3);
 	assert(post != NULL);
 
-	err = compose_mail(&PROC_CONT_SPEC_PROC(proc_cont, id),post);
-	assert(err != ecFail);
+	err = compose_mail(proc_cont, id, post);
+	if (err != ecSuccess)
+	{
+		printf("ERROR: couldn't send message");
+		post_destroy(post);
+	}
 }
 
 void loop_read_to_file_process(proc_cont_t* proc_cont, int vaddr, int id, int off, int amount, char* file_name)
@@ -384,8 +395,12 @@ void loop_read_to_file_process(proc_cont_t* proc_cont, int vaddr, int id, int of
 	post = create_post(fcLoopReadToFile, args, 4);
 	assert(post != NULL);
 
-	err = compose_mail(&PROC_CONT_SPEC_PROC(proc_cont, id),post);
-	assert(err != ecFail);
+	err = compose_mail(proc_cont, id, post);
+	if (err != ecSuccess)
+	{
+		printf("ERROR: couldn't send message");
+		post_destroy(post);
+	}
 }
 
 void write_process(proc_cont_t* proc_cont, int vaddr, int id, char* s)
@@ -414,8 +429,12 @@ void write_process(proc_cont_t* proc_cont, int vaddr, int id, char* s)
 	post = create_post(fcWrite, args, 3);
 	assert(post != NULL);
 
-	err = compose_mail(&PROC_CONT_SPEC_PROC(proc_cont, id),post);
-	assert(err != ecFail);
+	err = compose_mail(proc_cont, id, post);
+	if (err != ecSuccess)
+	{
+		printf("ERROR: couldn't send message");
+		post_destroy(post);
+	}
 }
 
 void loop_write_process(proc_cont_t* proc_cont, int vaddr, int id, char c, int off, int amount)
@@ -448,6 +467,10 @@ void loop_write_process(proc_cont_t* proc_cont, int vaddr, int id, char c, int o
 	post = create_post(fcLoopWrite, args, 4);
 	assert(post != NULL);
 
-	err = compose_mail(&PROC_CONT_SPEC_PROC(proc_cont, id),post);
-	assert(err != ecFail);
+	err = compose_mail(proc_cont, id, post);
+	if (err != ecSuccess)
+	{
+		printf("ERROR: couldn't send message");
+		post_destroy(post);
+	}
 }
