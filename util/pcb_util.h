@@ -24,7 +24,6 @@ typedef struct
 	procid_t pid;
 
 	int disk_block_start;
-	int block_size; //can later be removed
 	BOOL junk; //if TRUE can be overridden
 	BOOL del; //if TRUE, process got a delete message
 
@@ -38,7 +37,6 @@ typedef struct
 #define PROCESS(x) ((process_t *) (x))
 #define PROC_PID(x) (x) -> pid
 #define PROC_STRT(x) (x) -> disk_block_start
-#define PROC_SIZE(x) (x) -> block_size
 #define PROC_JUNK(x) (x) -> junk
 #define PROC_DEL(x) (x) -> del
 #define PROC_THRD(x) (x) -> proc_thrd
@@ -53,6 +51,7 @@ typedef struct
 	mmu_t* mmu;
 
 	unsigned max_num_of_proc;
+	unsigned prc_blk_size;
 
 	pthread_mutex_t mutex;
 	pthread_cond_t delete;
@@ -62,6 +61,7 @@ typedef struct
 #define PROC_CONT(x) ((proc_cont_t *) (x))
 #define PROC_CONT_PRC(x) (x) -> processes //returns processes
 #define PROC_CONT_N_PROC(x) (x) -> max_num_of_proc
+#define PROC_CONT_PRC_BLK_SZE(x) (x) -> prc_blk_size
 #define PROC_CONT_MMU(x) (x) -> mmu
 #define PROC_CONT_SPEC_PROC(_cont, _pid) (PROC_CONT_PRC((_cont)))[_pid]
 #define PROC_CONT_MTX(x) (x) -> mutex
