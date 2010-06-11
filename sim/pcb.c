@@ -11,7 +11,7 @@
 #include <malloc.h>
 #include <strings.h>
 
-proc_cont_t* init_proc_cont(int nprocs, mmu_t* mmu)
+proc_cont_t* init_proc_cont(int nprocs, int block_size, mmu_t* mmu)
 {
 	int i = 0;
 	proc_cont_t* to_return;
@@ -34,6 +34,7 @@ proc_cont_t* init_proc_cont(int nprocs, mmu_t* mmu)
 	PROC_CONT_N_PROC(to_return) = nprocs;
 	PROC_CONT_PRC(to_return) = processes;
 	PROC_CONT_MMU(to_return) = mmu;
+	PROC_CONT_PRC_BLK_SZE(to_return) = block_size;
 
 	return to_return;
 }
@@ -79,8 +80,7 @@ int init_process(proc_cont_t* proc_cont)
 
 	VIRT_ADDR_PID(first_process_address) = i;
 	VIRT_ADDR_PAGE(first_process_address) = 0;
-	///TODO there has to be a better way to find the process block size.
-	errs = mmu_alloc_multiple(PROC_CONT_MMU(proc_cont),first_process_address, proc_cont->mmu->disk->process_block_size, page);
+	errs = mmu_alloc_multiple(PROC_CONT_MMU(proc_cont),first_process_address, PROC_CONT_PRC_BLK_SZE(proc_cont), page);
 	if (errs != ecSuccess)
 	{
 		pthread_mutex_unlock(&PROC_CONT_MTX(proc_cont));
@@ -89,7 +89,6 @@ int init_process(proc_cont_t* proc_cont)
 	}
 
 	PROC_STRT(prc) = page;
-	prc -> block_size = PROC_CONT_MMU(proc_cont) -> disk -> process_block_size;
 	PROC_JUNK(prc) = FALSE;
 
 	PROC_MAIL(prc) = queue_init();

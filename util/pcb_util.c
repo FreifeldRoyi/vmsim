@@ -194,7 +194,7 @@ errcode_t process_dealloc(proc_cont_t* proc_cont, procid_t pid)
 	pthread_mutex_destroy(&PROC_MAIL_LOCK(this_proc));
 	pthread_cond_destroy(&PROC_COND(this_proc));
 
-	mmu_free_multiple(mmu, vAddr, PROC_SIZE(this_proc));
+	mmu_free_multiple(mmu, vAddr, PROC_CONT_PRC_BLK_SZE(proc_cont));
 	disk_free_process_block(disk, PROC_STRT(this_proc));
 
 	worker_thread_destroy(PROC_THRD(this_proc));

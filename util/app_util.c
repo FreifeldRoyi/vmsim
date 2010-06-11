@@ -190,7 +190,7 @@ BOOL load_app_data(char* file_name, app_data_t* app_data)
 	mm_init(mm, n_page_mm, page_size);
 	mmu_init(mmu, mm, disk, shift_clock);
 
-	APP_DATA_PROC_CONT(app_data) = init_proc_cont(nproc, mmu);
+	APP_DATA_PROC_CONT(app_data) = init_proc_cont(nproc, n_proc_pages, mmu);
 	//TODO if any more fields are added to the app_data struct, don't forget to handle here
 	err = prm_init(mmu);
 	assert(err == ecSuccess);
@@ -329,19 +329,22 @@ void read_to_file_process(proc_cont_t* proc_cont, int vaddr, int id, int amount,
 	void** args = (void**)malloc(3 * sizeof (void*));
 	virt_addr_t* vAddr = (virt_addr_t*)malloc(sizeof(virt_addr_t));
 	int* amnt = (int*)malloc(sizeof(int));
+	char* f_name = (char*)calloc(strlen(file_name) + 1, sizeof(char));
 
 	assert(args != NULL);
 	assert(vAddr != NULL);
 	assert(amnt != NULL);
 	assert(file_name != NULL);
+	assert(f_name != NULL);
 
 	vAddr -> page = vaddr;
 	vAddr -> pid = id;
 	(*amnt) = amount;
+	f_name = strcpy(f_name, file_name);
 
 	args[0] = vAddr;
 	args[1] = amnt;
-	args[2] = file_name; //TODO might be a problem....since file_name may be defined on stack
+	args[2] = f_name;
 
 	post = create_post(fcReadToFile, args, 3);
 	assert(post != NULL);
@@ -358,22 +361,25 @@ void loop_read_to_file_process(proc_cont_t* proc_cont, int vaddr, int id, int of
 	virt_addr_t* vAddr = (virt_addr_t*)malloc(sizeof(virt_addr_t));
 	int* offset = (int*)malloc(sizeof(int));
 	int* amnt = (int*)malloc(sizeof(int));
+	char* f_name = (char*)calloc(strlen(file_name) + 1, sizeof(char));
 
 	assert(args != NULL);
 	assert(vAddr != NULL);
 	assert(offset != NULL);
 	assert(amnt != NULL);
 	assert(file_name != NULL);
+	assert(f_name != NULL);
 
 	vAddr -> page = vaddr;
 	vAddr -> pid = id;
 	(*offset) = off;
 	(*amnt) = amount;
+	f_name = strcpy(f_name, file_name);
 
 	args[0] = vAddr;
 	args[1] = offset;
 	args[2] = amnt;
-	args[3] = file_name; //TODO might be a problem....since file_name may be defined on stack
+	args[3] = f_name;
 
 	post = create_post(fcLoopReadToFile, args, 4);
 	assert(post != NULL);
@@ -389,18 +395,20 @@ void write_process(proc_cont_t* proc_cont, int vaddr, int id, char* s)
 	void** args = (void**)malloc(3 * sizeof (void*));
 	virt_addr_t* vAddr = (virt_addr_t*)malloc(sizeof(virt_addr_t));
 	int* amnt = (int*)malloc(sizeof(int));
+	char* st = (char*)calloc(strlen(s) + 1, sizeof(char));
 
 	assert(args != NULL);
 	assert(vAddr != NULL);
-	assert(s != NULL);
+	assert(st != NULL);
 	assert(amnt != NULL);
 
 	vAddr -> page = vaddr;
 	vAddr -> pid = id;
 	(*amnt) = strlen(s);
+	st = strcpy(st,s);
 
 	args[0] = vAddr;
-	args[1] = s; //TODO might be a problem....since file_name may be defined on stack
+	args[1] = st;
 	args[2] = amnt;
 
 	post = create_post(fcWrite, args, 3);

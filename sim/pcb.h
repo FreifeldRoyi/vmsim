@@ -17,7 +17,7 @@
  * since it is called before any asynchronous run is taking place,
  * this function is not thread safe
  */
-proc_cont_t* init_proc_cont(int nprocs, mmu_t* mmu);
+proc_cont_t* init_proc_cont(int nprocs, int block_size,mmu_t* mmu);
 
 /**
  * creates a new process and adds to the proc_cont
