@@ -100,7 +100,7 @@ typedef struct
 /**
  * creates and sends mail to the process
  */
-errcode_t compose_mail(process_t* prc, post_t* post);
+errcode_t compose_mail(proc_cont_t* proc_cont, procid_t pid, post_t* post);
 
 /**
  * creates post struct

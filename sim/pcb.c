@@ -148,7 +148,7 @@ errcode_t process_destroy(proc_cont_t* proc_cont, procid_t id)
 	}
 
 	post_t* post = create_post(fcDel,NULL, 0);
-	err = compose_mail(this_proc, post);
+	err = compose_mail(proc_cont, id, post);
 
 	if (err != ecSuccess)
 	{

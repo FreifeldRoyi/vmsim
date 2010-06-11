@@ -10,9 +10,20 @@
 #include <malloc.h>
 #include <assert.h>
 
-errcode_t compose_mail(process_t* prc, post_t* post)
+errcode_t compose_mail(proc_cont_t* proc_cont, procid_t pid, post_t* post)
 {
+	process_t* prc = &PROC_CONT_SPEC_PROC(proc_cont,pid);
 	assert(post != NULL);
+
+	if (pid > PROC_CONT_N_PROC(proc_cont) || pid < 0)
+	{
+		return ecNotFound;
+	}
+
+	if (PROC_JUNK(prc))
+	{
+		return ecNotFound;
+	}
 
 	pthread_mutex_lock(&PROC_MAIL_LOCK(prc));
 	if (prc == NULL)
@@ -219,7 +230,7 @@ errcode_t sim_read(proc_cont_t* proc_cont, virt_addr_t* vAddr, int off,int amoun
 	assert(vAddr -> pid >= 0);
 	assert(amount > 0);
 
-	while (multiplier < amount - 1 && off * multiplier < page_size && err == ecSuccess)
+	while (multiplier < amount && off * multiplier < page_size && err == ecSuccess)
 	{
 		err = mmu_read(PROC_CONT_MMU(proc_cont), *vAddr, off * multiplier, 1, &buf[multiplier]); //TODO check correctness
 		++multiplier;

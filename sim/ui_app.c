@@ -6,6 +6,8 @@
  */
 #include "ui_app.h"
 #include "util/logger.h"
+#include "prm.h"
+#include "aging_daemon.h"
 #include <string.h>
 #include <assert.h>
 
@@ -202,7 +204,7 @@ BOOL do_read(ui_cmd_t* cmd, app_data_t* app_data)
 				else
 					to_return = FALSE;
 			}
-			if (tok_count < 3)
+			if (tok_count != 3)
 			{
 				to_return = FALSE;
 				printf("Not enough or bad arguments. usage: read vAddr id amount\n");
@@ -254,7 +256,7 @@ BOOL do_loop_read(ui_cmd_t* cmd, app_data_t* app_data)
 				else
 					to_return = FALSE;
 			}
-			if (tok_count < 4)
+			if (tok_count != 4)
 			{
 				to_return = FALSE;
 				printf("Not enough or bad arguments. usage: loopRead vAddr id off amount\n");
@@ -306,9 +308,9 @@ BOOL do_read_to_file(ui_cmd_t* cmd, app_data_t* app_data)
 				else
 					to_return = FALSE;
 			}
-			if (tok_count < 4)
+			if (tok_count == 3)
 			{
-				token = strtok(NULL," ");
+				//token = strtok(NULL," ");
 				if (token != NULL)
 				{
 					++tok_count;
@@ -321,6 +323,11 @@ BOOL do_read_to_file(ui_cmd_t* cmd, app_data_t* app_data)
 					to_return = FALSE;
 					printf("Not enough or bad arguments. usage: readToFile vAddr id amount filename\n");
 				}
+			}
+			else
+			{
+				to_return = FALSE;
+				printf ("Bad or not enough arguments. usage: readToFile vAddr id amount filename\n");
 			}
 		}
 		else
@@ -364,9 +371,9 @@ BOOL do_loop_read_to_file(ui_cmd_t* cmd, app_data_t* app_data)
 				else
 					to_return = FALSE;
 			}
-			if (tok_count < 5)
+			if (tok_count == 4)
 			{
-				token = strtok(NULL," ");
+				//token = strtok(NULL," ");
 				if (token != NULL)
 				{
 					++tok_count;
@@ -379,6 +386,11 @@ BOOL do_loop_read_to_file(ui_cmd_t* cmd, app_data_t* app_data)
 					to_return = FALSE;
 					printf("Not enough or bad arguments. usage: loopReadToFile vAddr id off amount filename\n");
 				}
+			}
+			else
+			{
+				to_return = FALSE;
+				printf ("Bad or not enough arguments. usage: loopReadToFile vAddr id off amount filename\n");
 			}
 		}
 		else
@@ -417,13 +429,8 @@ BOOL do_write(ui_cmd_t* cmd, app_data_t* app_data)
 
 				if (err > 0)
 				{
-					DEBUG1("err = %d\n", err);
-					DEBUG1("before token = %s\n", token);
-					DEBUG1("before ++tok_count = %d\n", tok_count);
 					++tok_count;
-					DEBUG1("after ++tok_count = %d\n", tok_count);
 					token = strtok(NULL," ");
-					DEBUG1("after token = %s\n", token);
 				}
 				else
 					to_return = FALSE;
@@ -437,7 +444,6 @@ BOOL do_write(ui_cmd_t* cmd, app_data_t* app_data)
 					s = token;
 					++tok_count;
 
-					DEBUG3("Calling write_process with: %d %d %s\n", params[0], params[1], token);
 					write_process(APP_DATA_PROC_CONT(app_data), params[0], params[1], token);
 
 					to_return = TRUE;
@@ -447,6 +453,11 @@ BOOL do_write(ui_cmd_t* cmd, app_data_t* app_data)
 					to_return = FALSE;
 					printf("Not enough or bad arguments. usage: write vAddr id s\n");
 				}
+			}
+			else
+			{
+				to_return = FALSE;
+				printf ("Bad or not enough arguments. usage: write vAddr id s\n");
 			}
 		}
 		else
@@ -503,7 +514,7 @@ BOOL do_loop_write(ui_cmd_t* cmd, app_data_t* app_data)
 
 			}
 
-			if (tok_count < 5)
+			if (tok_count != 5)
 			{
 				to_return = FALSE;
 				printf("Not enough or bad arguments. usage: loopWrite vAddr id c off amount\n");
