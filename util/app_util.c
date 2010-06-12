@@ -305,6 +305,13 @@ void del_process(app_data_t* app_data, procid_t pid)
 	//no need for success print
 }
 
+static void make_virt_addr(virt_addr_t* vaddr, int user_addr, int page_size, int pid)
+{
+	vaddr -> offset = offset_from_address(page_size, user_addr);
+	vaddr -> page = page_from_address(page_size, user_addr);
+	vaddr -> pid = pid;
+}
+
 void read_process(proc_cont_t* proc_cont, int vaddr, int id, int amount)
 {
 	errcode_t err;
@@ -318,9 +325,7 @@ void read_process(proc_cont_t* proc_cont, int vaddr, int id, int amount)
 	assert(vAddr != NULL);
 	assert(amnt != NULL);
 
-	vAddr -> offset = offset_from_address(page_size, vaddr);
-	vAddr -> page = page_from_address(page_size, vaddr);
-	vAddr -> pid = id;
+	make_virt_addr(vAddr, vaddr, page_size, id);
 	(*amnt) = amount;
 
 	args[0] = vAddr;
@@ -352,9 +357,7 @@ void loop_read_process(proc_cont_t* proc_cont, int vaddr, int id, int off, int a
 	assert(offset != NULL);
 	assert(amnt != NULL);
 
-	vAddr -> offset = offset_from_address(page_size, vaddr);
-	vAddr -> page = page_from_address(page_size, vaddr);
-	vAddr -> pid = id;
+	make_virt_addr(vAddr, vaddr, page_size, id);
 	(*offset) = off;
 	(*amnt) = amount;
 
@@ -389,9 +392,7 @@ void read_to_file_process(proc_cont_t* proc_cont, int vaddr, int id, int amount,
 	assert(file_name != NULL);
 	assert(f_name != NULL);
 
-	vAddr -> offset = offset_from_address(page_size, vaddr);
-	vAddr -> page = page_from_address(page_size, vaddr);
-	vAddr -> pid = id;
+	make_virt_addr(vAddr, vaddr, page_size, id);
 	(*amnt) = amount;
 	f_name = strcpy(f_name, file_name);
 
@@ -419,6 +420,7 @@ void loop_read_to_file_process(proc_cont_t* proc_cont, int vaddr, int id, int of
 	int* offset = (int*)malloc(sizeof(int));
 	int* amnt = (int*)malloc(sizeof(int));
 	char* f_name = (char*)calloc(strlen(file_name) + 1, sizeof(char));
+	int page_size = PROC_CONT_MMU(proc_cont)->mem->page_size;
 
 	assert(args != NULL);
 	assert(vAddr != NULL);
@@ -427,8 +429,7 @@ void loop_read_to_file_process(proc_cont_t* proc_cont, int vaddr, int id, int of
 	assert(file_name != NULL);
 	assert(f_name != NULL);
 
-	vAddr -> page = vaddr;
-	vAddr -> pid = id;
+	make_virt_addr(vAddr, vaddr, page_size, id);
 	(*offset) = off;
 	(*amnt) = amount;
 	f_name = strcpy(f_name, file_name);
@@ -464,9 +465,7 @@ void write_process(proc_cont_t* proc_cont, int vaddr, int id, char* s)
 	assert(st != NULL);
 	assert(amnt != NULL);
 
-	vAddr -> offset = offset_from_address(page_size, vaddr);
-	vAddr -> page = page_from_address(page_size, vaddr);
-	vAddr -> pid = id;
+	make_virt_addr(vAddr, vaddr, page_size, id);
 	(*amnt) = strlen(s);
 	st = strcpy(st,s);
 
@@ -502,9 +501,7 @@ void loop_write_process(proc_cont_t* proc_cont, int vaddr, int id, char c, int o
 	assert(offset != NULL);
 	assert(amnt != NULL);
 
-	vAddr -> offset = offset_from_address(page_size, vaddr);
-	vAddr -> page = page_from_address(page_size, vaddr);
-	vAddr -> pid = id;
+	make_virt_addr(vAddr, vaddr, page_size, id);
 	(*ch) = c;
 	(*offset) = off;
 	(*amnt) = amount;
