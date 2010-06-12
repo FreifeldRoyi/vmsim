@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-
+/*
 int main()
 {
 	add_queue_tests();
@@ -18,8 +18,8 @@ int main()
 	cunit_run_suite();
 	cunit_destroy();
 	return 0;
-}
-/*
+}*/
+
 int main(int argc, char** argv)
 {
 	printf("Program name: %s\nFile name: %s\n",argv[0], argv[1]);
@@ -28,4 +28,4 @@ int main(int argc, char** argv)
 
 	return 0;
 }
-*/
+
