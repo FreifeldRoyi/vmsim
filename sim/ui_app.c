@@ -15,118 +15,91 @@
 static BOOL command_handler(ui_cmd_t* cmd, app_data_t* app_data)
 {
 	BOOL to_return = TRUE;
+	BOOL async_wait = TRUE;
 
 	if (!strcmp("exit", cmd -> command))
 	{
 		to_return = FALSE;
+		async_wait=FALSE;
 	}
 	else if (!strcmp("createProcess", cmd -> command))
 	{
-		wait_job_done();
 		do_create_process(cmd, app_data);
-		signal_job_done();
+		async_wait=FALSE;
 	}
 	else if (!strcmp("delProcess", cmd -> command))
 	{
-		wait_job_done();
 		do_del_process(cmd, app_data);
-		signal_job_done();
+		async_wait=FALSE;
 	}
 	else if (!strcmp("read", cmd -> command))
 	{
-		wait_job_done();
 		do_read(cmd, app_data);
-		signal_job_done();
 	}
 	else if (!strcmp("loopRead", cmd -> command))
 	{
-		wait_job_done();
 		do_loop_read(cmd ,app_data);
-		signal_job_done();
 	}
 	else if (!strcmp("readToFile", cmd -> command))
 	{
-		wait_job_done();
 		do_read_to_file(cmd ,app_data);
-		signal_job_done();
 	}
 	else if (!strcmp("loopReadToFile", cmd -> command))
 	{
-		wait_job_done();
 		do_loop_read_to_file(cmd ,app_data);
-		signal_job_done();
 	}
 	else if (!strcmp("write", cmd -> command))
 	{
-		wait_job_done();
 		do_write(cmd ,app_data);
-		signal_job_done();
 	}
 	else if (!strcmp("loopWrite", cmd -> command))
 	{
-		wait_job_done();
 		do_loop_write(cmd ,app_data);
-		signal_job_done();
 	}
 	else if (!strcmp("hitRate", cmd -> command))
 	{
-		wait_job_done();
 		do_hit_rate(cmd ,app_data);
-		signal_job_done();
 	}
 	else if (!strcmp("printMM", cmd -> command))
 	{
-		wait_job_done();
 		do_print_MM(cmd ,app_data);
-		signal_job_done();
 	}
 	else if (!strcmp("printMMUTable", cmd -> command))
 	{
-		wait_job_done();
 		do_print_MMU_table(cmd ,app_data);
-		signal_job_done();
 	}
 	else if (!strcmp("printRegisters", cmd -> command))
 	{
-		wait_job_done();
 		do_print_registers(cmd ,app_data);
-		signal_job_done();
 	}
 	else if (!strcmp("printHAT", cmd -> command))
 	{
-		wait_job_done();
 		do_print_HAT(cmd ,app_data);
-		signal_job_done();
 	}
 	else if (!strcmp("monitor", cmd -> command))
 	{
-		wait_job_done();
 		do_monitor(cmd ,app_data);
-		signal_job_done();
 	}
 	else if (!strcmp("noMonitor", cmd -> command))
 	{
-		wait_job_done();
 		do_no_monitor(cmd ,app_data);
-		signal_job_done();
 	}
 	else if (!strcmp("debug", cmd -> command))
 	{
-		wait_job_done();
 		do_debug_mode(cmd, app_data);
-		signal_job_done();
 	}
 	else if (!strcmp("batchFile", cmd -> command))
 	{
-		wait_job_done();
 		to_return = do_batch_file(cmd ,app_data);
-		signal_job_done();
 	}
 	else
 	{
-		wait_job_done();
 		printf ("Wrong input, please type again\n");
-		signal_job_done();
+	}
+
+	if (async_wait)
+	{
+		wait_job_done();
 	}
 
 	return to_return;
@@ -140,14 +113,12 @@ ui_cmd_t get_command()
 	memset(ret.command, 0, MAX_CMD_LEN + 1);
 	memset(ret.param, 0, FILENAME_MAX);
 
-	wait_job_done();
 	printf(PROMPT);
 	scanf("%14s",ret.command);
 
 	sep = getc(stdin);
 	if (sep == '\n')
 	{
-		signal_job_done();
 		return ret;
 	}
 
@@ -157,8 +128,6 @@ ui_cmd_t get_command()
 	//who was the idiot who wrote that function?!?!?!
 	if (ret.param[strlen(ret.param) - 1] == '\n')
 		ret.param[strlen(ret.param) - 1] = '\0';
-
-	signal_job_done();
 
 	return ret;
 }
@@ -755,6 +724,7 @@ int app_main(int argc, char** argv)
 		cmd = get_command();
 
 		cmd_ret = command_handler(&cmd, &app_data);
+
 
 		//DEBUG4("command was: %s\ncmd_ret = %d\n!cmd_ret = %d\ncompare = %d",cmd.command,cmd_ret,!cmd_ret,strcmp("batchFile",cmd.command));
 		// ohhhh... this is ugly
