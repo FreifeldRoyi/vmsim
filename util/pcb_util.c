@@ -244,7 +244,7 @@ errcode_t sim_read(proc_cont_t* proc_cont, virt_addr_t* vAddr, int off,int amoun
 	while (multiplier < amount && err == ecSuccess)
 	{
 		INFO3("reading from (%d:%d:%d)\n", VIRT_ADDR_PID(*vAddr),VIRT_ADDR_PAGE(*vAddr), VIRT_ADDR_OFFSET(*vAddr));
-		err = mmu_read(PROC_CONT_MMU(proc_cont), *vAddr, 1, &buf[multiplier]); //TODO check correctness
+		err = mmu_read(PROC_CONT_MMU(proc_cont), *vAddr, 1, &buf[multiplier]);
 		++multiplier;
 		advance_virt_addr(vAddr, off,page_size);
 	}
@@ -258,7 +258,7 @@ errcode_t sim_read(proc_cont_t* proc_cont, virt_addr_t* vAddr, int off,int amoun
 		else
 		{
 			INFO1("Output to %s\n", file_name);
-			f = fopen(file_name, "w+"); //TODO maybe a different mode
+			f = fopen(file_name, "w+");
 		}
 
 		for (i = 0; i < multiplier; ++i)

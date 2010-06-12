@@ -24,8 +24,6 @@ typedef struct
 	unsigned shift_clock;
 
 	proc_cont_t* proc_cont;
-
-	//TODO fill up later on
 } app_data_t;
 
 #define APP_DATA(x)	((app_data_t *) (x))
