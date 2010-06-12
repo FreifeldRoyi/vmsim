@@ -3,7 +3,7 @@
 
 /**Aging daemon thread, as described in the assignment*/
 
-#include "sim/mmu.h"
+#include "vmsim/mmu.h"
 #include "util/vmsim_types.h"
 
 /**Start running the aging thread.

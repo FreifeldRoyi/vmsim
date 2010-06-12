@@ -10,7 +10,7 @@
 
 #include "util/worker_thread.h"
 #include "util/vmsim_types.h"
-#include "sim/mmu.h"
+#include "vmsim/mmu.h"
 #include "util/queue.h"
 /****************************************definitions*******************************/
 

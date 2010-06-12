@@ -6,8 +6,8 @@
  */
 
 #include "app_util.h"
-#include "sim/prm.h"
-#include "sim/aging_daemon.h"
+#include "vmsim/prm.h"
+#include "vmsim/aging_daemon.h"
 #include "locks.h"
 #include "logger.h"
 #include <string.h>
