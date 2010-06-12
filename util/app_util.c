@@ -37,7 +37,7 @@ static unsigned page_shift(int page_size)
 static unsigned page_mask(int page_size)
 {
 	unsigned mask = 0xFFFFFFFF;
-	int i;
+	unsigned i;
 	for (i=0; i<page_shift(page_size) ;++i)
 	{
 		mask <<= 1;
