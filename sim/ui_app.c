@@ -22,6 +22,7 @@ static BOOL command_handler(ui_cmd_t* cmd, app_data_t* app_data)
 	{
 		to_return = FALSE;
 		async_wait=FALSE;
+		ret_cmd = TRUE;
 	}
 	else if (!strcmp("createProcess", cmd -> command))
 	{
