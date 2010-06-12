@@ -136,7 +136,7 @@ errcode_t loop_read_file_decoder(proc_cont_t* proc_cont, post_t* post)
 	vAddr = (virt_addr_t*)post -> args[0];
 	offset = *(int*)post -> args[1];
 	amount = *(int*)post -> args[2];
-	file_name = (char*)post -> args[2];
+	file_name = (char*)post -> args[3];
 
 	return sim_read(proc_cont, vAddr, offset, amount, file_name);
 }
@@ -251,9 +251,14 @@ errcode_t sim_read(proc_cont_t* proc_cont, virt_addr_t* vAddr, int off,int amoun
 	if (err == ecSuccess)
 	{
 		if (file_name == NULL)
+		{
 			f = stdout;
+		}
 		else
+		{
+			INFO1("Output to %s\n", file_name);
 			f = fopen(file_name, "w+"); //TODO maybe a different mode
+		}
 
 		for (i = 0; i < multiplier; ++i)
 		{
