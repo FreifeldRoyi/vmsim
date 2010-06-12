@@ -26,7 +26,7 @@ errcode_t bitmap_init(bitmap_t* bitmap, int nbits)
 static int
 find_first(bitmap_t* bitmap, BOOL value, bitmap_block_t skip_block)
 {
-	int blockidx = 0,
+	unsigned blockidx = 0,
 		bitidx = 0,
 		maxbitidx;
 	bitmap_block_t block;

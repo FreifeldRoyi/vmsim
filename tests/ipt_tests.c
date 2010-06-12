@@ -1,6 +1,6 @@
 #include "cunit/cunit.h"
 
-static const int NPAGES = 7;
+#define NPAGES 7
 
 
 cunit_err_t test_ipt_add_no_listwalk()
@@ -8,7 +8,7 @@ cunit_err_t test_ipt_add_no_listwalk()
 	ipt_t ipt;
 	virt_addr_t addr[5];
 	phys_addr_t paddr = 0xFFFFFFFF;
-	int i;
+	unsigned i;
 
 	ASSERT_EQUALS(ecSuccess, ipt_init(&ipt, 10));
 
@@ -37,10 +37,10 @@ cunit_err_t test_ipt_add_no_listwalk()
 cunit_err_t test_ipt_multiple_add_remove()
 {
 	ipt_t ipt;
-	virt_addr_t addr = {0,0};
+	virt_addr_t addr = {0,0,0};
 	phys_addr_t paddr = 0xFFFFFFFF;
 	phys_addr_t expected_paddr = 0;
-	int i;
+	unsigned i;
 
 	ASSERT_EQUALS(ecSuccess, ipt_init(&ipt, NPAGES));
 
@@ -61,9 +61,9 @@ cunit_err_t test_ipt_multiple_add_remove()
 cunit_err_t test_ipt_add_listwalk()
 {
 	ipt_t ipt;
-	virt_addr_t addr[3] = {{0,0}, {NPAGES,0}, {0,NPAGES}};
+	virt_addr_t addr[3] = {{0,0,0}, {NPAGES,0,0}, {0,NPAGES,0}};
 	phys_addr_t paddr = 0xFFFFFFFF;
-	int i;
+	unsigned i;
 
 	ASSERT_EQUALS(ecSuccess, ipt_init(&ipt, 10));
 
@@ -85,9 +85,9 @@ cunit_err_t test_ipt_add_listwalk()
 cunit_err_t test_ipt_add_listwalk_and_others()
 {
 	ipt_t ipt;
-	virt_addr_t addr[5] = {{0,0}, {1,0}, {NPAGES,0}, {0,3},{0,NPAGES}};
+	virt_addr_t addr[5] = {{0,0,0}, {1,0,0}, {NPAGES,0,0}, {0,3,0},{0,NPAGES,0}};
 	phys_addr_t paddr = 0xFFFFFFFF;
-	int i;
+	unsigned i;
 
 	ASSERT_EQUALS(ecSuccess, ipt_init(&ipt, 10));
 
@@ -109,7 +109,7 @@ cunit_err_t test_ipt_add_listwalk_and_others()
 cunit_err_t test_ipt_remove_no_listwalk()
 {
 	ipt_t ipt;
-	virt_addr_t addr = {0,0};
+	virt_addr_t addr = {0,0,0};
 
 	ASSERT_EQUALS(ecSuccess, ipt_init(&ipt, 10));
 
@@ -128,12 +128,12 @@ cunit_err_t test_ipt_remove_no_listwalk()
 cunit_err_t test_ipt_remove_listwalk_and_others()
 {
 	ipt_t ipt;
-	virt_addr_t addr[5] = {{0,0}, {1,0}, {NPAGES,0}, {0,3},{0,NPAGES}};
+	virt_addr_t addr[5] = {{0,0,0}, {1,0,0}, {NPAGES,0,0}, {0,3,0},{0,NPAGES,0}};
 	int i;
 
 	ASSERT_EQUALS(ecSuccess, ipt_init(&ipt, 10));
 
-	for (i=0;i<ARRSIZE(addr); ++i)
+	for (i=0;i<(int)ARRSIZE(addr); ++i)
 	{
 		ASSERT_EQUALS(ecSuccess, ipt_add(&ipt, addr[i]));
 	}
@@ -143,7 +143,7 @@ cunit_err_t test_ipt_remove_listwalk_and_others()
 		ASSERT_EQUALS(ecSuccess, ipt_remove(&ipt, addr[i]));
 	}
 
-	for (i=0;i<ARRSIZE(addr); ++i){
+	for (i=0;i<(int)ARRSIZE(addr); ++i){
 		ASSERT_TRUE(!ipt_has_translation(&ipt, addr[i]));
 	}
 
@@ -156,7 +156,7 @@ cunit_err_t test_ipt_add_remove_generic()
 {
 	ipt_t ipt;
 	virt_addr_t addr;
-	int i;
+	unsigned i;
 
 	ASSERT_EQUALS(ecSuccess, ipt_init(&ipt, NPAGES));
 	for (i=0;i<NPAGES; ++i)
@@ -181,9 +181,9 @@ cunit_err_t test_ipt_reference()
 {
 	ipt_t ipt;
 	virt_addr_t addr;
-	int i;
+	unsigned i;
 	ipt_ref_t reftype;
-	int refcount;
+	unsigned refcount;
 
 	for (reftype = refRead; reftype <= refWrite; ++reftype)
 	{
