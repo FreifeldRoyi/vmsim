@@ -8,10 +8,20 @@
 #include "app_util.h"
 #include "sim/prm.h"
 #include "sim/aging_daemon.h"
+#include "locks.h"
 #include "logger.h"
 #include <string.h>
 #include <malloc.h>
 #include <assert.h>
+
+//printing cond
+pthread_cond_t job_done_cond;
+
+//printing mutex
+pthread_mutex_t job_done_mutex;
+
+//condition
+BOOL job_done;
 
 static unsigned page_shift(int page_size)
 {
@@ -523,6 +533,39 @@ void loop_write_process(proc_cont_t* proc_cont, int vaddr, int id, char c, int o
 		printf("ERROR: couldn't send message");
 		post_destroy(post);
 	}
+}
+
+
+void wait_job_done()
+{
+	mutex_lock(&job_done_mutex);
+
+	while(!job_done)
+	{
+		cond_wait(&job_done_cond,&job_done_mutex);
+	}
+
+	job_done = FALSE;
+}
+
+void signal_job_done()
+{
+	job_done = TRUE;
+	cond_signal(&job_done_cond);
+	mutex_unlock(&job_done_mutex);
+}
+
+void init_job_done()
+{
+	pthread_cond_init(&job_done_cond, NULL);
+	pthread_mutex_init(&job_done_mutex, NULL);
+	job_done = TRUE;
+}
+
+void destroy_job_done()
+{
+	pthread_cond_destroy(&job_done_cond);
+	pthread_mutex_destroy(&job_done_mutex);
 }
 
 #include "tests/app_util_tests.c"

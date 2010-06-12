@@ -15,7 +15,6 @@
 #include "sim/mmu.h"
 #include "sim/pcb.h"
 
-
 typedef struct
 {
 	BOOL initialized;
@@ -122,6 +121,14 @@ BOOL load_app_data(char* file_name, app_data_t* app_data);
  * free all application related data
  */
 void free_app_data(app_data_t* app_data);
+
+void wait_job_done();
+
+void signal_job_done();
+
+void init_job_done();
+
+void destroy_job_done();
 
 #endif /* APP_UTIL_H_ */
 

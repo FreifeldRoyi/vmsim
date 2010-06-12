@@ -28,7 +28,6 @@ typedef unsigned char BYTE;
 typedef unsigned procid_t;
 
 //a virtual page.
-///TODO this should change to a single unsigned at some point
 typedef struct
 {
 	procid_t pid;

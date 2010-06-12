@@ -22,75 +22,111 @@ static BOOL command_handler(ui_cmd_t* cmd, app_data_t* app_data)
 	}
 	else if (!strcmp("createProcess", cmd -> command))
 	{
+		wait_job_done();
 		do_create_process(cmd, app_data);
+		signal_job_done();
 	}
 	else if (!strcmp("delProcess", cmd -> command))
 	{
+		wait_job_done();
 		do_del_process(cmd, app_data);
+		signal_job_done();
 	}
 	else if (!strcmp("read", cmd -> command))
 	{
+		wait_job_done();
 		do_read(cmd, app_data);
+		signal_job_done();
 	}
 	else if (!strcmp("loopRead", cmd -> command))
 	{
+		wait_job_done();
 		do_loop_read(cmd ,app_data);
+		signal_job_done();
 	}
 	else if (!strcmp("readToFile", cmd -> command))
 	{
+		wait_job_done();
 		do_read_to_file(cmd ,app_data);
+		signal_job_done();
 	}
 	else if (!strcmp("loopReadToFile", cmd -> command))
 	{
+		wait_job_done();
 		do_loop_read_to_file(cmd ,app_data);
+		signal_job_done();
 	}
 	else if (!strcmp("write", cmd -> command))
 	{
+		wait_job_done();
 		do_write(cmd ,app_data);
+		signal_job_done();
 	}
 	else if (!strcmp("loopWrite", cmd -> command))
 	{
+		wait_job_done();
 		do_loop_write(cmd ,app_data);
+		signal_job_done();
 	}
 	else if (!strcmp("hitRate", cmd -> command))
 	{
+		wait_job_done();
 		do_hit_rate(cmd ,app_data);
+		signal_job_done();
 	}
 	else if (!strcmp("printMM", cmd -> command))
 	{
+		wait_job_done();
 		do_print_MM(cmd ,app_data);
+		signal_job_done();
 	}
 	else if (!strcmp("printMMUTable", cmd -> command))
 	{
+		wait_job_done();
 		do_print_MMU_table(cmd ,app_data);
+		signal_job_done();
 	}
 	else if (!strcmp("printRegisters", cmd -> command))
 	{
+		wait_job_done();
 		do_print_registers(cmd ,app_data);
+		signal_job_done();
 	}
 	else if (!strcmp("printHAT", cmd -> command))
 	{
+		wait_job_done();
 		do_print_HAT(cmd ,app_data);
+		signal_job_done();
 	}
 	else if (!strcmp("monitor", cmd -> command))
 	{
+		wait_job_done();
 		do_monitor(cmd ,app_data);
+		signal_job_done();
 	}
 	else if (!strcmp("noMonitor", cmd -> command))
 	{
+		wait_job_done();
 		do_no_monitor(cmd ,app_data);
+		signal_job_done();
 	}
 	else if (!strcmp("debug", cmd -> command))
 	{
+		wait_job_done();
 		do_debug_mode(cmd, app_data);
+		signal_job_done();
 	}
 	else if (!strcmp("batchFile", cmd -> command))
 	{
+		wait_job_done();
 		to_return = do_batch_file(cmd ,app_data);
+		signal_job_done();
 	}
 	else
 	{
+		wait_job_done();
 		printf ("Wrong input, please type again\n");
+		signal_job_done();
 	}
 
 	return to_return;
@@ -104,12 +140,16 @@ ui_cmd_t get_command()
 	memset(ret.command, 0, MAX_CMD_LEN + 1);
 	memset(ret.param, 0, FILENAME_MAX);
 
+	wait_job_done();
 	printf(PROMPT);
 	scanf("%14s",ret.command);
 
 	sep = getc(stdin);
 	if (sep == '\n')
+	{
+		signal_job_done();
 		return ret;
+	}
 
 	fgets(ret.param, FILENAME_MAX, stdin);
 
@@ -118,8 +158,7 @@ ui_cmd_t get_command()
 	if (ret.param[strlen(ret.param) - 1] == '\n')
 		ret.param[strlen(ret.param) - 1] = '\0';
 
-	DEBUG1("command is: %s\n",ret.command);
-	DEBUG1("params are: %s\n",ret.param);
+	signal_job_done();
 
 	return ret;
 }
@@ -619,6 +658,7 @@ BOOL do_debug_mode(ui_cmd_t* cmd, app_data_t* app_data)
 	return TRUE;
 }
 
+//TODO fix batch parser
 BOOL do_batch_file(ui_cmd_t* cmd, app_data_t* app_data)
 {
 	BOOL to_return = FALSE;
@@ -708,6 +748,8 @@ int app_main(int argc, char** argv)
 		return -1;
 	}
 
+	init_job_done();
+
 	do
 	{
 		cmd = get_command();
@@ -724,9 +766,10 @@ int app_main(int argc, char** argv)
 	{
 		free_app_data(&app_data);
 	}
+
+	destroy_job_done();
 	printf("VMSim has finished. Have a nice day! =)\n");
 	return 0;
 }
 
 //TODO create lock for printing operations? - only UI thread is using printing..
-//TODO create a function for checking APP_DATA_INIT instead of the current situation

@@ -6,6 +6,7 @@
  */
 
 #include "pcb_util.h"
+#include "app_util.h"
 #include "logger.h"
 #include <malloc.h>
 #include <assert.h>
@@ -228,6 +229,8 @@ static void advance_virt_addr(virt_addr_t* addr, int offset, int page_size)
 
 errcode_t sim_read(proc_cont_t* proc_cont, virt_addr_t* vAddr, int off,int amount, char* file_name)
 {
+	printf("hasldkjalfdkjasf;hfkajhflkajshflakshaf");
+	wait_job_done();
 	int page_size = PROC_CONT_MMU(proc_cont) -> mem -> page_size;
 	FILE* f;
 	errcode_t err = ecSuccess;
@@ -264,7 +267,7 @@ errcode_t sim_read(proc_cont_t* proc_cont, virt_addr_t* vAddr, int off,int amoun
 			fclose(f);
 	}
 	free(buf);
-
+	signal_job_done();
 	return err;
 }
 
