@@ -33,14 +33,16 @@ typedef struct
 {
 	procid_t pid;
 	unsigned page;
+	unsigned offset;
 }virt_addr_t;
 
 //accessors for a virtual address
 #define VIRT_ADDR_PID(_v) (_v).pid
 #define VIRT_ADDR_PAGE(_v) (_v).page
+#define VIRT_ADDR_OFFSET(_v) (_v).offset
 
 //check vaddress equality
-#define VIRT_ADDR_EQ(_v1, _v2) ((VIRT_ADDR_PID(_v1) == VIRT_ADDR_PID(_v2)) && (VIRT_ADDR_PAGE(_v1) == VIRT_ADDR_PAGE(_v2)))
+#define VIRT_ADDR_PAGE_EQ(_v1, _v2) ((VIRT_ADDR_PID(_v1) == VIRT_ADDR_PID(_v2)) && (VIRT_ADDR_PAGE(_v1) == VIRT_ADDR_PAGE(_v2)))
 
 //an address on the disk
 typedef struct
