@@ -232,9 +232,9 @@ errcode_t sim_read(proc_cont_t* proc_cont, virt_addr_t* vAddr, int off,int amoun
 
 	while (multiplier < amount && off * multiplier < page_size && err == ecSuccess)
 	{
-		vAddr->offset =  off * multiplier;
 		err = mmu_read(PROC_CONT_MMU(proc_cont), *vAddr, 1, &buf[multiplier]); //TODO check correctness
 		++multiplier;
+		vAddr->offset +=  off;
 	}
 
 	if (err == ecSuccess)
@@ -270,9 +270,9 @@ errcode_t sim_write(proc_cont_t* proc_cont, virt_addr_t* vAddr, unsigned char* s
 	while (multiplier < amount && multiplier < page_size && err == ecSuccess)
 	{
 		INFO1("Trying to write page %d\n", multiplier);
-		vAddr->offset = multiplier;
 		err = mmu_write(PROC_CONT_MMU(proc_cont), *vAddr, 1, &s[multiplier]);
 		++multiplier;
+		++vAddr->offset;
 	}
 
 	return err;
@@ -291,7 +291,7 @@ errcode_t sim_loop_write(proc_cont_t* proc_cont, virt_addr_t* vAddr, unsigned ch
 
 	while (multiplier < amount && offset * multiplier < page_size && err == ecSuccess)
 	{
-		vAddr->offset = offset * multiplier;
+		vAddr->offset += multiplier;
 		err = mmu_write(PROC_CONT_MMU(proc_cont), *vAddr, 1, &c);
 		++multiplier;
 	}
