@@ -13,6 +13,46 @@
 #include <malloc.h>
 #include <assert.h>
 
+static unsigned page_shift(int page_size)
+{
+	unsigned shift = 0;
+	while (page_size > 1)
+	{
+		++shift;
+		page_size>>=1;
+	}
+	return shift;
+}
+
+static unsigned page_mask(int page_size)
+{
+	unsigned mask = 0xFFFFFFFF;
+	int i;
+	for (i=0; i<page_shift(page_size) ;++i)
+	{
+		mask <<= 1;
+	}
+	return mask;
+}
+
+static unsigned offset_mask(int page_size)
+{
+	return ~page_mask(page_size);
+}
+
+static int page_from_address(int page_size, int address)
+{
+	unsigned mask = page_mask(page_size),
+			 shift = page_shift(page_size);
+	return (address & mask)>>shift;
+}
+
+static int offset_from_address(int page_size, int address)
+{
+	unsigned mask = offset_mask(page_size);
+	return address & mask;
+}
+
 static void print_ipt_entry(ipt_entry_t entry)
 {
 	if (!(entry.page_data.valid))
@@ -474,3 +514,5 @@ void loop_write_process(proc_cont_t* proc_cont, int vaddr, int id, char c, int o
 		post_destroy(post);
 	}
 }
+
+#include "tests/app_util_tests.c"
