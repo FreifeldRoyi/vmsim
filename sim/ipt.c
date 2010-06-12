@@ -337,8 +337,14 @@ void ipt_destroy(ipt_t* ipt)
 	}
 
 	rwlock_destroy(&ipt->hat_lock);
-
 	rwlock_destroy(&ipt->refcnt_lock);
+	while (queue_size(ipt->free_pages) > 0)
+	{
+		queue_pop(ipt->free_pages);
+	}
+	queue_destroy(ipt->free_pages);
+
+	free(ipt->hat);
 }
 
 #include "tests/ipt_tests.c"
