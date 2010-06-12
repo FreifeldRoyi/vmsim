@@ -216,6 +216,16 @@ errcode_t process_dealloc(proc_cont_t* proc_cont, procid_t pid)
 	return ecSuccess;
 }
 
+static void advance_virt_addr(virt_addr_t* addr, int offset, int page_size)
+{
+	addr->offset += offset;
+	while (addr->offset >= page_size) //if
+	{
+		++addr->page;
+		addr->offset -= page_size;
+	}
+}
+
 errcode_t sim_read(proc_cont_t* proc_cont, virt_addr_t* vAddr, int off,int amount, char* file_name)
 {
 	int page_size = PROC_CONT_MMU(proc_cont) -> mem -> page_size;
@@ -235,13 +245,7 @@ errcode_t sim_read(proc_cont_t* proc_cont, virt_addr_t* vAddr, int off,int amoun
 		INFO3("reading from (%d:%d:%d)\n", VIRT_ADDR_PID(*vAddr),VIRT_ADDR_PAGE(*vAddr), VIRT_ADDR_OFFSET(*vAddr));
 		err = mmu_read(PROC_CONT_MMU(proc_cont), *vAddr, 1, &buf[multiplier]); //TODO check correctness
 		++multiplier;
-		vAddr->offset +=  off;
-
-		if (vAddr->offset >= page_size)
-		{
-			++vAddr->page;
-			vAddr->offset -= page_size;
-		}
+		advance_virt_addr(vAddr, off,page_size);
 	}
 
 	if (err == ecSuccess)
@@ -279,7 +283,7 @@ errcode_t sim_write(proc_cont_t* proc_cont, virt_addr_t* vAddr, unsigned char* s
 		INFO3("writing to (%d:%d:%d)\n", VIRT_ADDR_PID(*vAddr),VIRT_ADDR_PAGE(*vAddr), VIRT_ADDR_OFFSET(*vAddr));
 		err = mmu_write(PROC_CONT_MMU(proc_cont), *vAddr, 1, &s[multiplier]);
 		++multiplier;
-		++vAddr->offset;
+		advance_virt_addr(vAddr, 1,page_size);
 	}
 
 	return err;
@@ -301,12 +305,7 @@ errcode_t sim_loop_write(proc_cont_t* proc_cont, virt_addr_t* vAddr, unsigned ch
 		INFO3("writing to (%d:%d:%d)\n", VIRT_ADDR_PID(*vAddr),VIRT_ADDR_PAGE(*vAddr), VIRT_ADDR_OFFSET(*vAddr));
 		err = mmu_write(PROC_CONT_MMU(proc_cont), *vAddr, 1, &c);
 		++multiplier;
-		vAddr->offset += offset;
-		if (vAddr->offset >= page_size)
-		{
-			++vAddr->page;
-			vAddr->offset -= page_size;
-		}
+		advance_virt_addr(vAddr, offset,page_size);
 	}
 
 	return err;
