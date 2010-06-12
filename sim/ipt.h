@@ -47,7 +47,7 @@ typedef struct{
 
 	struct _queue_t* free_pages;
 
-	int ref_count;
+	unsigned ref_count;
 	rwlock_t refcnt_lock;
 
 }ipt_t;
@@ -157,7 +157,7 @@ errcode_t ipt_for_each_entry(ipt_t* ipt, void (*func)(phys_addr_t, page_data_t*)
  * @param refcount a pointer to an int that receives the refcount.
  * @return ecSuccess on success, some other code on failure.
  * */
-errcode_t ipt_ref_count(ipt_t* ipt, int* refcount);
+errcode_t ipt_ref_count(ipt_t* ipt, unsigned* refcount);
 
 /**Zero the reference count of the IPT.
  * @param ipt the IPT to use
