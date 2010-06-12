@@ -230,12 +230,18 @@ errcode_t sim_read(proc_cont_t* proc_cont, virt_addr_t* vAddr, int off,int amoun
 	assert(vAddr -> pid >= 0);
 	assert(amount > 0);
 
-	while (multiplier < amount && off * multiplier < page_size && err == ecSuccess)
+	while (multiplier < amount && err == ecSuccess)
 	{
 		INFO3("reading from (%d:%d:%d)\n", VIRT_ADDR_PID(*vAddr),VIRT_ADDR_PAGE(*vAddr), VIRT_ADDR_OFFSET(*vAddr));
 		err = mmu_read(PROC_CONT_MMU(proc_cont), *vAddr, 1, &buf[multiplier]); //TODO check correctness
 		++multiplier;
 		vAddr->offset +=  off;
+
+		if (vAddr->offset > page_size)
+		{
+			++vAddr->page;
+			vAddr->offset -= page_size;
+		}
 	}
 
 	if (err == ecSuccess)
@@ -290,12 +296,17 @@ errcode_t sim_loop_write(proc_cont_t* proc_cont, virt_addr_t* vAddr, unsigned ch
 	assert(vAddr -> pid >= 0);
 	assert(amount > 0);
 
-	while (multiplier < amount && offset * multiplier < page_size && err == ecSuccess)
+	while (multiplier < amount && err == ecSuccess)
 	{
 		INFO3("writing to (%d:%d:%d)\n", VIRT_ADDR_PID(*vAddr),VIRT_ADDR_PAGE(*vAddr), VIRT_ADDR_OFFSET(*vAddr));
 		err = mmu_write(PROC_CONT_MMU(proc_cont), *vAddr, 1, &c);
 		++multiplier;
 		vAddr->offset += offset;
+		if (vAddr->offset > page_size)
+		{
+			++vAddr->page;
+			vAddr->offset -= page_size;
+		}
 	}
 
 	return err;
