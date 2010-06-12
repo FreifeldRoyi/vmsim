@@ -237,7 +237,7 @@ errcode_t sim_read(proc_cont_t* proc_cont, virt_addr_t* vAddr, int off,int amoun
 		++multiplier;
 		vAddr->offset +=  off;
 
-		if (vAddr->offset > page_size)
+		if (vAddr->offset >= page_size)
 		{
 			++vAddr->page;
 			vAddr->offset -= page_size;
@@ -302,7 +302,7 @@ errcode_t sim_loop_write(proc_cont_t* proc_cont, virt_addr_t* vAddr, unsigned ch
 		err = mmu_write(PROC_CONT_MMU(proc_cont), *vAddr, 1, &c);
 		++multiplier;
 		vAddr->offset += offset;
-		if (vAddr->offset > page_size)
+		if (vAddr->offset >= page_size)
 		{
 			++vAddr->page;
 			vAddr->offset -= page_size;
