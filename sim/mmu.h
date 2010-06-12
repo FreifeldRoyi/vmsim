@@ -86,27 +86,25 @@ errcode_t mmu_unmap_page(mmu_t* mmu, virt_addr_t page);
  * mapped(swapped-in) if needed.
  *
  * @param mmu the MMU to use
- * @param page the page to read from
- * @param offset the offset in the page to read from
+ * @param page the address to read from
  * @param nbytes the number of bytes to read
  * @param buf a buffer into which the read data is copied.
  *
  * @return ecSuccess on success, some other code on failure.
  * */
-errcode_t mmu_read(mmu_t* mmu, virt_addr_t page, unsigned offset, unsigned nbytes, BYTE* buf);
+errcode_t mmu_read(mmu_t* mmu, virt_addr_t addr, unsigned nbytes, BYTE* buf);
 
 /**Write to an allocated (but not necessarily mapped) page. The page will be
  * mapped(swapped-in) if needed.
  *
  * @param mmu the MMU to use
- * @param page the page to write to
- * @param offset the offset in the page to write to
+ * @param page the address to write to
  * @param nbytes the number of bytes to write
  * @param buf a buffer from which the data is copied to the page.
  *
  * @return ecSuccess on success, some other code on failure.
  * */
-errcode_t mmu_write(mmu_t* mmu, virt_addr_t page, unsigned offset, unsigned nbytes, BYTE* buf);
+errcode_t mmu_write(mmu_t* mmu, virt_addr_t addr, unsigned nbytes, BYTE* buf);
 
 /**Perform an operation on every mapped page.
  * @param mmu the MMU to use

@@ -67,7 +67,7 @@ static int get_vaddr_idx(ipt_t* ipt,virt_addr_t addr)
 {
 	int idx = ipt_hat_idx_of(ipt, addr);
 	while ( (idx != -1) &&
-			!VIRT_ADDR_EQ(ipt->entries[idx].page_data.addr, addr))
+			!VIRT_ADDR_PAGE_EQ(ipt->entries[idx].page_data.addr, addr))
 	{
 		assert(ipt->entries[idx].page_data.valid);
 		idx = ipt->entries[idx].next;

@@ -16,7 +16,7 @@
 
 static BOOL disk_map_comparator(void* k1, void* k2)
 {
-	return !VIRT_ADDR_EQ(*(virt_addr_t*)k1, *(virt_addr_t*)k2);
+	return !VIRT_ADDR_PAGE_EQ(*(virt_addr_t*)k1, *(virt_addr_t*)k2);
 }
 
 errcode_t mmu_init(mmu_t* mmu, mm_t* mem, disk_t* disk, int aging_freq)
@@ -204,29 +204,29 @@ mmu_age_pages_if_needed(mmu_t* mmu)
 }
 
 errcode_t mmu_read(	mmu_t* mmu,
-					virt_addr_t page,
-					unsigned offset,
+					virt_addr_t addr,
 					unsigned nbytes,
 					BYTE* buf)
 {
 	phys_addr_t mem_page;
 	phys_addr_t mem_addr;
 	errcode_t errcode = ecSuccess;
+	unsigned offset = addr.offset;
 	assert(offset + nbytes <= MM_PAGE_SIZE(mmu->mem));
 
-	errcode = mmu_pin_page(mmu, page);
+	errcode = mmu_pin_page(mmu, addr);
 	assert (errcode == ecSuccess);
 
-	errcode = ipt_reference(&mmu->mem_ipt, page, refRead);
+	errcode = ipt_reference(&mmu->mem_ipt, addr, refRead);
 	assert (errcode == ecSuccess);
 
-	errcode = ipt_translate(&mmu->mem_ipt, page, &mem_page);
+	errcode = ipt_translate(&mmu->mem_ipt, addr, &mem_page);
 
 	///TODO change this when we have a proper API for MM
 	mem_addr = mem_page * MM_PAGE_SIZE(mmu->mem) + offset;
 	memcpy(buf, MM_DATA(mmu->mem) + mem_addr, nbytes);
 
-	errcode = mmu_unpin_page(mmu, page);
+	errcode = mmu_unpin_page(mmu, addr);
 
 	mmu_age_pages_if_needed(mmu);
 
@@ -234,29 +234,29 @@ errcode_t mmu_read(	mmu_t* mmu,
 }
 
 errcode_t mmu_write(mmu_t* mmu,
-					virt_addr_t page,
-					unsigned offset,
+					virt_addr_t addr,
 					unsigned nbytes,
 					BYTE* buf)
 {
 	phys_addr_t mem_page;
 	phys_addr_t mem_addr;
 	errcode_t errcode = ecSuccess;
+	unsigned offset = addr.offset;
 	assert(offset + nbytes <= MM_PAGE_SIZE(mmu->mem));
 
-	errcode = mmu_pin_page(mmu, page);
+	errcode = mmu_pin_page(mmu, addr);
 	assert (errcode == ecSuccess);
 
-	errcode = ipt_reference(&mmu->mem_ipt, page, refWrite);
+	errcode = ipt_reference(&mmu->mem_ipt, addr, refWrite);
 	assert (errcode == ecSuccess);
 
-	errcode = ipt_translate(&mmu->mem_ipt, page, &mem_page);
+	errcode = ipt_translate(&mmu->mem_ipt, addr, &mem_page);
 
 	///TODO change this when we have a proper API for MM
 	mem_addr = mem_page * MM_PAGE_SIZE(mmu->mem) + offset;
 	memcpy(MM_DATA(mmu->mem) + mem_addr, buf, nbytes);
 
-	errcode = mmu_unpin_page(mmu, page);
+	errcode = mmu_unpin_page(mmu, addr);
 
 	mmu_age_pages_if_needed(mmu);
 
