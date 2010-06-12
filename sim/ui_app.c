@@ -651,8 +651,9 @@ BOOL do_batch_file(ui_cmd_t* cmd, app_data_t* app_data)
 	FILE* f;
 	//BOOL cmd_ret = TRUE;
 	char* raw_cmd = (char*)malloc((MAX_CMD_LEN + 1 + FILENAME_MAX) * sizeof(char));
-	int nchar_raw; //number of chars read from sscanf
-	int nchar_cmd;
+	char* raw_cmd_for;
+	//int nchar_raw; //number of chars read from sscanf
+	//int nchar_cmd;
 	BOOL not_done = TRUE;
 	int line = 1;
 
@@ -671,9 +672,12 @@ BOOL do_batch_file(ui_cmd_t* cmd, app_data_t* app_data)
 		{
 
 			DEBUG1("Reading line %d\n",line);
-			nchar_raw = fscanf(f, "%s\n", raw_cmd);
+			raw_cmd = fgets(raw_cmd, MAX_CMD_LEN + 1 + FILENAME_MAX, f);
 
-			while (not_done && nchar_raw > 0 && nchar_raw != EOF)
+			if (raw_cmd[strlen(raw_cmd) - 1] == '\n')
+				raw_cmd[strlen(raw_cmd) - 1] = '\0';
+
+			while (not_done && raw_cmd != NULL)//nchar_raw > 0 && nchar_raw != EOF)
 			{
 				memset(batch_cmd.command, 0, MAX_CMD_LEN + 1);
 				memset(batch_cmd.param, 0, FILENAME_MAX);
@@ -681,19 +685,23 @@ BOOL do_batch_file(ui_cmd_t* cmd, app_data_t* app_data)
 				DEBUG2("[line %d] \"%s\" was read\n", line, raw_cmd);
 				++line;
 
-				nchar_cmd = sscanf(raw_cmd, "%14s", batch_cmd.command);
+				sscanf(raw_cmd, "%14s", batch_cmd.command);
 				DEBUG1("command is: %s\n", batch_cmd.command);
 
-				if (nchar_cmd != nchar_raw)
+				if (strcmp(raw_cmd, batch_cmd.command)) //do if raw_cmd and command are different
 				{
-					sscanf(raw_cmd, "%s\n", batch_cmd.param + 1);
+					raw_cmd_for = raw_cmd + strlen(batch_cmd.command) + 1;
+					memcpy(batch_cmd.param,raw_cmd_for, strlen(raw_cmd_for) * sizeof(char));
 					DEBUG1("params are: %s\n", batch_cmd.param);
 				}
 
 				not_done = command_handler(&batch_cmd, app_data);
 
 				DEBUG1("Reading line %d\n",line);
-				nchar_raw = fscanf(f, "%s\n", raw_cmd);
+				raw_cmd = fgets(raw_cmd, MAX_CMD_LEN + 1 + FILENAME_MAX, f);
+
+				if (raw_cmd[strlen(raw_cmd) - 1] == '\n')
+					raw_cmd[strlen(raw_cmd) - 1] = '\0';
 			}
 
 			DEBUG1("No commands in line %d\nBatch file end.\n",line);
