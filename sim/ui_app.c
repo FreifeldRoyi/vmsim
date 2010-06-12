@@ -16,6 +16,7 @@ static BOOL command_handler(ui_cmd_t* cmd, app_data_t* app_data)
 {
 	BOOL to_return = TRUE;
 	BOOL async_wait = TRUE;
+	BOOL ret_cmd;
 
 	if (!strcmp("exit", cmd -> command))
 	{
@@ -24,88 +25,90 @@ static BOOL command_handler(ui_cmd_t* cmd, app_data_t* app_data)
 	}
 	else if (!strcmp("createProcess", cmd -> command))
 	{
-		do_create_process(cmd, app_data);
+		ret_cmd = do_create_process(cmd, app_data);
 		async_wait=FALSE;
 	}
 	else if (!strcmp("delProcess", cmd -> command))
 	{
-		do_del_process(cmd, app_data);
+		ret_cmd = do_del_process(cmd, app_data);
 		async_wait=FALSE;
 	}
 	else if (!strcmp("read", cmd -> command))
 	{
-		do_read(cmd, app_data);
+		ret_cmd = do_read(cmd, app_data);
 	}
 	else if (!strcmp("loopRead", cmd -> command))
 	{
-		do_loop_read(cmd ,app_data);
+		ret_cmd = do_loop_read(cmd ,app_data);
 	}
 	else if (!strcmp("readToFile", cmd -> command))
 	{
-		do_read_to_file(cmd ,app_data);
+		ret_cmd = do_read_to_file(cmd ,app_data);
 	}
 	else if (!strcmp("loopReadToFile", cmd -> command))
 	{
-		do_loop_read_to_file(cmd ,app_data);
+		ret_cmd = do_loop_read_to_file(cmd ,app_data);
 	}
 	else if (!strcmp("write", cmd -> command))
 	{
-		do_write(cmd ,app_data);
+		ret_cmd = do_write(cmd ,app_data);
 	}
 	else if (!strcmp("loopWrite", cmd -> command))
 	{
-		do_loop_write(cmd ,app_data);
+		ret_cmd = do_loop_write(cmd ,app_data);
 	}
 	else if (!strcmp("hitRate", cmd -> command))
 	{
-		do_hit_rate(cmd ,app_data);
+		ret_cmd = do_hit_rate(cmd ,app_data);
 		signal_job_done();
 	}
 	else if (!strcmp("printMM", cmd -> command))
 	{
-		do_print_MM(cmd ,app_data);
+		ret_cmd = do_print_MM(cmd ,app_data);
 		signal_job_done();
 	}
 	else if (!strcmp("printMMUTable", cmd -> command))
 	{
-		do_print_MMU_table(cmd ,app_data);
+		ret_cmd = do_print_MMU_table(cmd ,app_data);
 		signal_job_done();
 	}
 	else if (!strcmp("printRegisters", cmd -> command))
 	{
-		do_print_registers(cmd ,app_data);
+		ret_cmd = do_print_registers(cmd ,app_data);
 		signal_job_done();
 	}
 	else if (!strcmp("printHAT", cmd -> command))
 	{
-		do_print_HAT(cmd ,app_data);
+		ret_cmd = do_print_HAT(cmd ,app_data);
 		signal_job_done();
 	}
 	else if (!strcmp("monitor", cmd -> command))
 	{
-		do_monitor(cmd ,app_data);
+		ret_cmd = do_monitor(cmd ,app_data);
 		signal_job_done();
 	}
 	else if (!strcmp("noMonitor", cmd -> command))
 	{
-		do_no_monitor(cmd ,app_data);
+		ret_cmd = do_no_monitor(cmd ,app_data);
 		signal_job_done();
 	}
 	else if (!strcmp("debug", cmd -> command))
 	{
-		do_debug_mode(cmd, app_data);
+		ret_cmd = do_debug_mode(cmd, app_data);
 		signal_job_done();
 	}
 	else if (!strcmp("batchFile", cmd -> command))
 	{
 		to_return = do_batch_file(cmd ,app_data);
-		signal_job_done();
 	}
 	else
 	{
 		printf ("Wrong input, please type again\n");
 		signal_job_done();
 	}
+
+	if (!ret_cmd)
+		signal_job_done();
 
 	if (async_wait)
 	{
@@ -548,6 +551,7 @@ BOOL do_loop_write(ui_cmd_t* cmd, app_data_t* app_data)
 			else
 			{
 				loop_write_process(APP_DATA_PROC_CONT(app_data), params[0], params[1], s[0], params[2], params[3]);
+				to_return = TRUE;
 			}
 		}
 		else
@@ -748,5 +752,3 @@ int app_main(int argc, char** argv)
 	printf("VMSim has finished. Have a nice day! =)\n");
 	return 0;
 }
-
-//TODO create lock for printing operations? - only UI thread is using printing..
