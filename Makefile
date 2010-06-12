@@ -7,6 +7,7 @@ CFLAGS := ${CFLAGS} -O0 -g3 -Wall -Wextra -pthread -Wno-unused-parameter -Wno-in
 
 INCLUDE := .
 
+all: vmsim
 main.o: main.c cunit/cunit.h sim/ui_app.h util/app_util.h \
  util/vmsim_types.h sim/ipt.h util/vmsim_types.h util/locks.h \
  util/queue.h util/list.h sim/mm.h sim/disk.h util/bitmap.h sim/mmu.h \
@@ -85,7 +86,7 @@ map.o: util/map.c util/map.h util/vmsim_types.h tests/map_tests.c \
 cunit.o: cunit/cunit.c cunit/cunit.h util/queue.h util/list.h \
  util/vmsim_types.h
 	gcc -I . ${CFLAGS} -c ./cunit/cunit.c -o ${OUTDIR}/cunit.o
-.all:  main.o disk.o ui_app.o mmu.o mm.o prm.o ipt.o pcb.o aging_daemon.o locks.o logger.o list.o queue.o worker_thread.o pcb_util.o app_util.o bitmap.o map.o cunit.o
+vmsim:  main.o disk.o ui_app.o mmu.o mm.o prm.o ipt.o pcb.o aging_daemon.o locks.o logger.o list.o queue.o worker_thread.o pcb_util.o app_util.o bitmap.o map.o cunit.o
 	[ -d ${OUTDIR} ] || mkdir -p ${OUTDIR}
 	cd ${OUTDIR}
 	gcc ${LDFLAGS}  ${OUTDIR}/main.o ${OUTDIR}/disk.o ${OUTDIR}/ui_app.o ${OUTDIR}/mmu.o ${OUTDIR}/mm.o ${OUTDIR}/prm.o ${OUTDIR}/ipt.o ${OUTDIR}/pcb.o ${OUTDIR}/aging_daemon.o ${OUTDIR}/locks.o ${OUTDIR}/logger.o ${OUTDIR}/list.o ${OUTDIR}/queue.o ${OUTDIR}/worker_thread.o ${OUTDIR}/pcb_util.o ${OUTDIR}/app_util.o ${OUTDIR}/bitmap.o ${OUTDIR}/map.o ${OUTDIR}/cunit.o -o vmsim
