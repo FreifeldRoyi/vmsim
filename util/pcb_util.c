@@ -73,6 +73,7 @@ void post_destroy(post_t* post)
 		{
 			free((post -> args)[i]);
 		}
+		free(post->args);
 	}
 
 	free(post);
@@ -185,7 +186,7 @@ errcode_t process_dealloc(proc_cont_t* proc_cont, procid_t pid)
 	disk_t* disk = mmu -> disk;
 	process_t* this_proc = &PROC_CONT_SPEC_PROC(proc_cont, pid);
 	virt_addr_t vAddr;
-	vAddr.page = PROC_STRT(this_proc);
+	vAddr.page = 0;
 	vAddr.pid = pid;
 
 	assert(mmu != NULL);
@@ -209,8 +210,10 @@ errcode_t process_dealloc(proc_cont_t* proc_cont, procid_t pid)
 	mmu_free_multiple(mmu, vAddr, PROC_CONT_PRC_BLK_SZE(proc_cont));
 	disk_free_process_block(disk, PROC_STRT(this_proc));
 
-	worker_thread_destroy(PROC_THRD(this_proc));
+	worker_thread_destroy(&PROC_THRD(this_proc));
 	PROC_JUNK(this_proc) = TRUE;
+
+	func_arg_destroy(this_proc->proc_thrd_arg);
 
 	pthread_cond_signal(&PROC_CONT_DEL(proc_cont));
 	pthread_mutex_unlock(&PROC_CONT_MTX(proc_cont));

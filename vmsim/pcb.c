@@ -96,10 +96,10 @@ int init_process(proc_cont_t* proc_cont)
 	PROC_PID(prc) = i;
 
 	//concurrent object init
-	PROC_THRD(prc) = (worker_thread_t*)malloc(sizeof(worker_thread_t));
-	assert(PROC_THRD(prc) != NULL);
+/*	PROC_THRD(prc) = (worker_thread_t*)malloc(sizeof(worker_thread_t));
+	assert(PROC_THRD(prc) != NULL);*/
 
-	errs = worker_thread_create(PROC_THRD(prc),&process_func);
+	errs = worker_thread_create(&PROC_THRD(prc),&process_func);
 
 	if (errs == ecFail)
 	{
@@ -114,15 +114,15 @@ int init_process(proc_cont_t* proc_cont)
 
 errcode_t process_start(proc_cont_t* proc_cont, procid_t pid)
 {
-	worker_thread_t* thrd = PROC_THRD(&PROC_CONT_SPEC_PROC(proc_cont, pid));
+	worker_thread_t* thrd = &PROC_THRD(&PROC_CONT_SPEC_PROC(proc_cont, pid));
 
-	func_arg* arg = (func_arg*)malloc(sizeof(func_arg));
-	assert(arg != NULL);
+	PROC_CONT_SPEC_PROC(proc_cont, pid).proc_thrd_arg = (func_arg*)malloc(sizeof(func_arg));
+	assert(PROC_CONT_SPEC_PROC(proc_cont, pid).proc_thrd_arg != NULL);
 
-	ARG_CONT(arg) = proc_cont;
-	ARG_PID(arg) = pid;
+	ARG_CONT((func_arg*)PROC_CONT_SPEC_PROC(proc_cont, pid).proc_thrd_arg) = proc_cont;
+	ARG_PID((func_arg*)PROC_CONT_SPEC_PROC(proc_cont, pid).proc_thrd_arg) = pid;
 
-	return worker_thread_start(thrd, arg);
+	return worker_thread_start(thrd, PROC_CONT_SPEC_PROC(proc_cont, pid).proc_thrd_arg);
 }
 
 errcode_t process_destroy(proc_cont_t* proc_cont, procid_t id)

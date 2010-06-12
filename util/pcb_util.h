@@ -27,7 +27,8 @@ typedef struct
 	BOOL junk; //if TRUE can be overridden
 	BOOL del; //if TRUE, process got a delete message
 
-	worker_thread_t* proc_thrd;
+	worker_thread_t proc_thrd;
+	void* proc_thrd_arg;
 
 	struct _queue_t* mail_box;
 	pthread_mutex_t mail_mutex;

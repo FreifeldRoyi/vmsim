@@ -234,6 +234,8 @@ BOOL load_app_data(char* file_name, app_data_t* app_data)
 	fscanf(f, "ShiftClock = %u", &shift_clock);
 	//input correctness isn't checked
 
+	fclose(f);
+
 	APP_DATA_PAGE_SIZE(app_data) = page_size;
 	APP_DATA_NUM_OF_PROC_PAGE(app_data) = n_proc_pages;
 	APP_DATA_SHIFT_CLOCK(app_data) = shift_clock;
@@ -266,7 +268,8 @@ void free_app_data(app_data_t* app_data)
 	prm_destroy();
 	aging_daemon_stop();
 
-	//TODO NOTE: if mm and disk are destroyed within the mmu delete the next piece of code
+	mmu_destroy(mmu);
+
 	//delete
 	mm_t* mm = mmu->mem;
 	disk_t* disk = mmu->disk;
@@ -274,11 +277,12 @@ void free_app_data(app_data_t* app_data)
 	disk_destroy(disk);
 	//end delete
 
-	//TODO NOTE: if mmu is destroyed within the process container delete the next line
-	mmu_destroy(mmu);
+	free(mm);
+	free(disk);
+	free(mmu);
 
 	proc_cont_destroy(proc_cont);
-	//TODO if any more fields are added to the app_data struct, don't forget to handle here
+	free(proc_cont);
 
 }
 
