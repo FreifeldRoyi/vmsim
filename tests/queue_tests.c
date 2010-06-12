@@ -105,7 +105,7 @@ cunit_err_t test_node_delete()
 
 	ASSERT_EQUALS(1, queue_push(t_toDestroy, t_toAdd));
 	ASSERT_EQUALS(1, node_destroy(queue_pop(t_toDestroy), NULL));
-	ASSERT_EQUALS(0, node_destroy(t_nd, &queue_destroy));
+	ASSERT_EQUALS(0, node_destroy(t_nd, (int(*)(void*))&queue_destroy));
 
 	return ceSuccess;
 }

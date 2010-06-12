@@ -3,7 +3,9 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-/*
+
+#ifdef VMSIM_RUN_TESTS
+
 int main()
 {
 	add_queue_tests();
@@ -18,7 +20,9 @@ int main()
 	cunit_run_suite();
 	cunit_destroy();
 	return 0;
-}*/
+}
+
+#else
 
 int main(int argc, char** argv)
 {
@@ -29,3 +33,4 @@ int main(int argc, char** argv)
 	return 0;
 }
 
+#endif

@@ -191,7 +191,7 @@ static errcode_t mmu_unpin_page(	mmu_t* mmu,
 static errcode_t
 mmu_age_pages_if_needed(mmu_t* mmu)
 {
-	int refcount;
+	unsigned refcount;
 	ipt_ref_count(&mmu->mem_ipt, &refcount);
 
 	DEBUG2("refcount=%d, aging_freq=%d\n", refcount, mmu->aging_freq);
@@ -211,8 +211,8 @@ errcode_t mmu_read(	mmu_t* mmu,
 	phys_addr_t mem_page;
 	phys_addr_t mem_addr;
 	errcode_t errcode = ecSuccess;
-	unsigned offset = addr.offset;
-	assert(offset + nbytes <= MM_PAGE_SIZE(mmu->mem));
+	int offset = addr.offset;
+	assert(offset + (int)nbytes <= MM_PAGE_SIZE(mmu->mem));
 
 	errcode = mmu_pin_page(mmu, addr);
 	assert (errcode == ecSuccess);
@@ -242,7 +242,7 @@ errcode_t mmu_write(mmu_t* mmu,
 	phys_addr_t mem_addr;
 	errcode_t errcode = ecSuccess;
 	unsigned offset = addr.offset;
-	assert(offset + nbytes <= MM_PAGE_SIZE(mmu->mem));
+	assert(offset + nbytes <= (unsigned)MM_PAGE_SIZE(mmu->mem));
 
 	errcode = mmu_pin_page(mmu, addr);
 	assert (errcode == ecSuccess);
