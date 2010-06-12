@@ -13,6 +13,46 @@
 #include <malloc.h>
 #include <assert.h>
 
+static unsigned page_shift(int page_size)
+{
+	unsigned shift = 0;
+	while (page_size > 1)
+	{
+		++shift;
+		page_size>>=1;
+	}
+	return shift;
+}
+
+static unsigned page_mask(int page_size)
+{
+	unsigned mask = 0xFFFFFFFF;
+	int i;
+	for (i=0; i<page_shift(page_size) ;++i)
+	{
+		mask <<= 1;
+	}
+	return mask;
+}
+
+static unsigned offset_mask(int page_size)
+{
+	return ~page_mask(page_size);
+}
+
+static int page_from_address(int page_size, int address)
+{
+	unsigned mask = page_mask(page_size),
+			 shift = page_shift(page_size);
+	return (address & mask)>>shift;
+}
+
+static int offset_from_address(int page_size, int address)
+{
+	unsigned mask = offset_mask(page_size);
+	return address & mask;
+}
+
 static void print_ipt_entry(ipt_entry_t entry)
 {
 	if (!(entry.page_data.valid))
@@ -272,12 +312,14 @@ void read_process(proc_cont_t* proc_cont, int vaddr, int id, int amount)
 	void** args = (void**)malloc(2 * sizeof (void*));
 	virt_addr_t* vAddr = (virt_addr_t*)malloc(sizeof(virt_addr_t));
 	int* amnt = (int*)malloc(sizeof(int));
+	int page_size = PROC_CONT_MMU(proc_cont)->mem->page_size;
 
 	assert(args != NULL);
 	assert(vAddr != NULL);
 	assert(amnt != NULL);
 
-	vAddr -> page = vaddr;
+	vAddr -> offset = offset_from_address(page_size, vaddr);
+	vAddr -> page = page_from_address(page_size, vaddr);
 	vAddr -> pid = id;
 	(*amnt) = amount;
 
@@ -303,13 +345,15 @@ void loop_read_process(proc_cont_t* proc_cont, int vaddr, int id, int off, int a
 	virt_addr_t* vAddr = (virt_addr_t*)malloc(sizeof(virt_addr_t));
 	int* offset = (int*)malloc(sizeof(int));
 	int* amnt = (int*)malloc(sizeof(int));
+	int page_size = PROC_CONT_MMU(proc_cont)->mem->page_size;
 
 	assert(args != NULL);
 	assert(vAddr != NULL);
 	assert(offset != NULL);
 	assert(amnt != NULL);
 
-	vAddr -> page = vaddr;
+	vAddr -> offset = offset_from_address(page_size, vaddr);
+	vAddr -> page = page_from_address(page_size, vaddr);
 	vAddr -> pid = id;
 	(*offset) = off;
 	(*amnt) = amount;
@@ -337,6 +381,7 @@ void read_to_file_process(proc_cont_t* proc_cont, int vaddr, int id, int amount,
 	virt_addr_t* vAddr = (virt_addr_t*)malloc(sizeof(virt_addr_t));
 	int* amnt = (int*)malloc(sizeof(int));
 	char* f_name = (char*)calloc(strlen(file_name) + 1, sizeof(char));
+	int page_size = PROC_CONT_MMU(proc_cont)->mem->page_size;
 
 	assert(args != NULL);
 	assert(vAddr != NULL);
@@ -344,7 +389,8 @@ void read_to_file_process(proc_cont_t* proc_cont, int vaddr, int id, int amount,
 	assert(file_name != NULL);
 	assert(f_name != NULL);
 
-	vAddr -> page = vaddr;
+	vAddr -> offset = offset_from_address(page_size, vaddr);
+	vAddr -> page = page_from_address(page_size, vaddr);
 	vAddr -> pid = id;
 	(*amnt) = amount;
 	f_name = strcpy(f_name, file_name);
@@ -411,13 +457,15 @@ void write_process(proc_cont_t* proc_cont, int vaddr, int id, char* s)
 	virt_addr_t* vAddr = (virt_addr_t*)malloc(sizeof(virt_addr_t));
 	int* amnt = (int*)malloc(sizeof(int));
 	char* st = (char*)calloc(strlen(s) + 1, sizeof(char));
+	int page_size = PROC_CONT_MMU(proc_cont)->mem->page_size;
 
 	assert(args != NULL);
 	assert(vAddr != NULL);
 	assert(st != NULL);
 	assert(amnt != NULL);
 
-	vAddr -> page = vaddr;
+	vAddr -> offset = offset_from_address(page_size, vaddr);
+	vAddr -> page = page_from_address(page_size, vaddr);
 	vAddr -> pid = id;
 	(*amnt) = strlen(s);
 	st = strcpy(st,s);
@@ -446,6 +494,7 @@ void loop_write_process(proc_cont_t* proc_cont, int vaddr, int id, char c, int o
 	char* ch = (char*)malloc(sizeof(char));
 	int* offset = (int*)malloc(sizeof(int));
 	int* amnt = (int*)malloc(sizeof(int));
+	int page_size = PROC_CONT_MMU(proc_cont)->mem->page_size;
 
 	assert(args != NULL);
 	assert(vAddr != NULL);
@@ -453,7 +502,8 @@ void loop_write_process(proc_cont_t* proc_cont, int vaddr, int id, char c, int o
 	assert(offset != NULL);
 	assert(amnt != NULL);
 
-	vAddr -> page = vaddr;
+	vAddr -> offset = offset_from_address(page_size, vaddr);
+	vAddr -> page = page_from_address(page_size, vaddr);
 	vAddr -> pid = id;
 	(*ch) = c;
 	(*offset) = off;
@@ -474,3 +524,5 @@ void loop_write_process(proc_cont_t* proc_cont, int vaddr, int id, char c, int o
 		post_destroy(post);
 	}
 }
+
+#include "tests/app_util_tests.c"
