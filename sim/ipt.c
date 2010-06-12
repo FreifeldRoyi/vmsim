@@ -137,7 +137,7 @@ static void init_ipt_slot(ipt_t* ipt, int idx,virt_addr_t addr, int next, int pr
 	ipt->entries[idx].page_data.page_age = 0;
 	SET_MSB(ipt->entries[idx].page_data.page_age, 1);
 }
-
+/*
 static void dump_list(ipt_t* ipt)
 {
 	int i;
@@ -158,7 +158,7 @@ static void dump_list(ipt_t* ipt)
 									ipt->entries[i].page_data.valid?"Yes":"No");
 	}
 }
-
+*/
 BOOL ipt_has_translation_unlocked(ipt_t* ipt, virt_addr_t addr)
 {
 	return get_vaddr_idx(ipt, addr) != IPT_INVALID;
@@ -201,7 +201,7 @@ errcode_t ipt_reference(ipt_t* ipt, virt_addr_t addr, ipt_ref_t reftype)
 errcode_t ipt_translate(ipt_t* ipt, virt_addr_t addr, phys_addr_t* paddr)
 {
 	*paddr = get_vaddr_idx(ipt, addr);
-	assert(*paddr != IPT_INVALID);
+	assert(*paddr != (unsigned)IPT_INVALID);
 	return ecSuccess;
 }
 
@@ -308,7 +308,7 @@ errcode_t ipt_for_each_entry(ipt_t* ipt, void (*func)(phys_addr_t, page_data_t*)
 	return ecSuccess;
 }
 
-errcode_t ipt_ref_count(ipt_t* ipt, int* refcount)
+errcode_t ipt_ref_count(ipt_t* ipt, unsigned* refcount)
 {
 	REFCNT_READ_START(ipt);
 	*refcount = ipt->ref_count;

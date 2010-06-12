@@ -42,7 +42,7 @@ cunit_err_t test_worker_thread_multiple()
 	{
 		ASSERT_EQUALS(ecSuccess, worker_thread_stop(&threads[i]));
 		worker_thread_destroy(&threads[i]);
-		ASSERT_TRUE(runcount > 0);
+		ASSERT_TRUE(runcount[i] > 0);
 	}
 	return ceSuccess;
 }
