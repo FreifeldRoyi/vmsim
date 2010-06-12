@@ -107,6 +107,8 @@ static void print_BYTE_hexa(BYTE* byte)
 {
 	BYTE print = *byte;
 	printf("0x%x", print);
+	if (print == 0x0)
+		printf(" ");
 }
 
 static void print_BYTE_int(BYTE* byte)
@@ -117,7 +119,11 @@ static void print_BYTE_int(BYTE* byte)
 
 static void print_BYTE_char(BYTE* byte)
 {
-	printf("%c",(*byte));
+	char c = *byte;
+	if (c == 0)
+		printf("-");
+	else
+		printf("%c",(*byte));
 }
 
 void print_MMU_table(ipt_t* table)
