@@ -292,7 +292,7 @@ errcode_t sim_loop_write(proc_cont_t* proc_cont, virt_addr_t* vAddr, unsigned ch
 
 	errcode_t err = ecSuccess;
 
-	assert(offset > 0);
+	assert(offset >= 0);
 	assert(vAddr -> pid >= 0);
 	assert(amount > 0);
 
