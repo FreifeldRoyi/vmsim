@@ -41,7 +41,7 @@ proc_cont_t* init_proc_cont(int nprocs, int block_size, mmu_t* mmu)
 
 int init_process(proc_cont_t* proc_cont)
 {
-	int i = 0;
+	unsigned i = 0;
 	process_t* prc;
 	errcode_t errs;
 	int page;
@@ -133,7 +133,7 @@ errcode_t process_destroy(proc_cont_t* proc_cont, procid_t id)
 
 	pthread_mutex_lock(&PROC_CONT_MTX(proc_cont));
 
-	if (id >= PROC_CONT_N_PROC(proc_cont) || id < 0)
+	if (id >= (unsigned)PROC_CONT_N_PROC(proc_cont))
 	{
 		pthread_mutex_unlock(&PROC_CONT_MTX(proc_cont));
 		return ecFail;
@@ -165,7 +165,7 @@ errcode_t process_destroy(proc_cont_t* proc_cont, procid_t id)
 
 errcode_t proc_cont_destroy(proc_cont_t* proc_cont)
 {
-	int i;
+	unsigned i;
 
 	if (proc_cont == NULL)
 	{

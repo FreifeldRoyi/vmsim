@@ -16,7 +16,7 @@ errcode_t compose_mail(proc_cont_t* proc_cont, procid_t pid, post_t* post)
 	process_t* prc = &PROC_CONT_SPEC_PROC(proc_cont,pid);
 	assert(post != NULL);
 
-	if (pid > PROC_CONT_N_PROC(proc_cont) || pid < 0)
+	if (pid > PROC_CONT_N_PROC(proc_cont))
 	{
 		return ecNotFound;
 	}
@@ -220,7 +220,7 @@ errcode_t process_dealloc(proc_cont_t* proc_cont, procid_t pid)
 static void advance_virt_addr(virt_addr_t* addr, int offset, int page_size)
 {
 	addr->offset += offset;
-	while (addr->offset >= page_size) //if
+	while (addr->offset >= (unsigned)page_size)
 	{
 		++addr->page;
 		addr->offset -= page_size;
@@ -238,7 +238,6 @@ errcode_t sim_read(proc_cont_t* proc_cont, virt_addr_t* vAddr, int off,int amoun
 	int i;
 
 	assert(off > 0);
-	assert(vAddr -> pid >= 0);
 	assert(amount > 0);
 
 	while (multiplier < amount && err == ecSuccess)
@@ -278,15 +277,14 @@ errcode_t sim_read(proc_cont_t* proc_cont, virt_addr_t* vAddr, int off,int amoun
 
 errcode_t sim_write(proc_cont_t* proc_cont, virt_addr_t* vAddr, unsigned char* s, int amount)
 {
-	unsigned multiplier = 0;
+	int multiplier = 0;
 	int page_size = PROC_CONT_MMU(proc_cont) -> mem -> page_size;
 
 	errcode_t err = ecSuccess;
 
-	assert(vAddr -> pid >= 0);
 	assert(amount > 0);
 
-	while (multiplier < amount && multiplier < page_size && err == ecSuccess)
+	while ( (multiplier < amount) && (multiplier < page_size) && (err == ecSuccess))
 	{
 		INFO3("writing to (%d:%d:%d)\n", VIRT_ADDR_PID(*vAddr),VIRT_ADDR_PAGE(*vAddr), VIRT_ADDR_OFFSET(*vAddr));
 		err = mmu_write(PROC_CONT_MMU(proc_cont), *vAddr, 1, &s[multiplier]);
@@ -301,16 +299,15 @@ errcode_t sim_write(proc_cont_t* proc_cont, virt_addr_t* vAddr, unsigned char* s
 
 errcode_t sim_loop_write(proc_cont_t* proc_cont, virt_addr_t* vAddr, unsigned char c, int offset,int amount)
 {
-	unsigned multiplier = 0;
+	int multiplier = 0;
 	int page_size = PROC_CONT_MMU(proc_cont) -> mem -> page_size;
 
 	errcode_t err = ecSuccess;
 
 	assert(offset >= 0);
-	assert(vAddr -> pid >= 0);
 	assert(amount > 0);
 
-	while (multiplier < amount && err == ecSuccess)
+	while ((multiplier < amount) && (err == ecSuccess))
 	{
 		INFO3("writing to (%d:%d:%d)\n", VIRT_ADDR_PID(*vAddr),VIRT_ADDR_PAGE(*vAddr), VIRT_ADDR_OFFSET(*vAddr));
 		err = mmu_write(PROC_CONT_MMU(proc_cont), *vAddr, 1, &c);
