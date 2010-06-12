@@ -105,7 +105,7 @@ static BOOL command_handler(ui_cmd_t* cmd, app_data_t* app_data)
 	else
 	{
 		printf ("Wrong input, please type again\n");
-		signal_job_done();
+		ret_cmd = FALSE;
 	}
 
 	if (!ret_cmd)
