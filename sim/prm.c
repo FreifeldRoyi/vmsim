@@ -80,7 +80,7 @@ static void get_oldest_page(phys_addr_t mem_page, page_data_t* page)
 	}
 
 	if (((age > oldest_page_idx) || (oldest_page_idx == -1))&&
-		(!VIRT_ADDR_EQ(swap_target, page->addr)))
+		(!VIRT_ADDR_PAGE_EQ(swap_target, page->addr)))
 	{
 		oldest_page_idx = cur_idx;
 		oldest_page_age = age;
@@ -93,7 +93,7 @@ static virt_addr_t get_page_to_swap(mmu_t* mmu, virt_addr_t page_to_load)
 	oldest_page_idx = -1;
 	swap_target = page_to_load;
 	mmu_for_each_mem_page(mmu, get_oldest_page);
-	assert (!VIRT_ADDR_EQ(page_to_load, oldest_page_vaddr));\
+	assert (!VIRT_ADDR_PAGE_EQ(page_to_load, oldest_page_vaddr));\
 	DEBUG1("age of oldest page is 0x%X\n", oldest_page_age);
 	return oldest_page_vaddr;
 }

@@ -42,11 +42,12 @@ static cunit_err_t
 validated_write(mmu_t* mmu, virt_addr_t addr, unsigned offset, unsigned nbytes)
 {
 	BYTE buf[PAGESIZE]; //just to avoid dynamic allocation
+	addr.offset = offset;
 
 	ASSERT_EQUALS(ceSuccess, write_pattern(mmu, addr, offset, nbytes, buf));
-	ASSERT_EQUALS(ecSuccess, mmu_write(mmu, addr, offset, nbytes, buf));
+	ASSERT_EQUALS(ecSuccess, mmu_write(mmu, addr, nbytes, buf));
 	memset(buf, 0, ARRSIZE(buf));
-	ASSERT_EQUALS(ecSuccess, mmu_read(mmu, addr, offset, nbytes, buf));
+	ASSERT_EQUALS(ecSuccess, mmu_read(mmu, addr, nbytes, buf));
 	ASSERT_EQUALS(ceSuccess, validate_pattern(mmu,addr,offset,nbytes,buf));
 
 	return ceSuccess;
@@ -139,7 +140,7 @@ cunit_err_t test_mmu_alloc_read_free_multiple()
 	mmu_t mmu;
 	mm_t mem;
 	disk_t disk;
-	virt_addr_t addr = {0,0};
+	virt_addr_t addr = {0,0,0};
 	int i,j;
 	BYTE buf[PAGESIZE];
 
@@ -154,7 +155,7 @@ cunit_err_t test_mmu_alloc_read_free_multiple()
 		for (j=0; j<MEM_NPAGES; ++j)
 		{
 			VIRT_ADDR_PAGE(addr) = j;
-			mmu_read(&mmu, addr, 0, PAGESIZE, buf);
+			mmu_read(&mmu, addr, PAGESIZE, buf);
 		}
 		VIRT_ADDR_PAGE(addr) = 0;
 		ASSERT_EQUALS(ecSuccess, mmu_free_multiple(&mmu, addr, MEM_NPAGES));
@@ -399,7 +400,7 @@ cunit_err_t test_mmu_sync_to_backing_page()
 	mmu_t mmu;
 	mm_t mem;
 	disk_t disk;
-	virt_addr_t addr = {0,0};
+	virt_addr_t addr = {0,0,0};
 	int disk_page;
 	BYTE buf[PAGESIZE];
 
@@ -415,7 +416,7 @@ cunit_err_t test_mmu_sync_to_backing_page()
 	ASSERT_EQUALS(ecSuccess, mmu_alloc_page(&mmu, addr, disk_page));
 
 	ASSERT_EQUALS(ceSuccess, write_pattern(&mmu, addr, 0,PAGESIZE, buf));
-	ASSERT_EQUALS(ecSuccess, mmu_write(&mmu, addr, 0, PAGESIZE, buf));
+	ASSERT_EQUALS(ecSuccess, mmu_write(&mmu, addr, PAGESIZE, buf));
 
 	ASSERT_EQUALS(ecSuccess, mmu_sync_to_backing_page(&mmu, addr));
 
@@ -438,7 +439,7 @@ cunit_err_t test_mmu_sync_from_backing_page()
 	mmu_t mmu;
 	mm_t mem;
 	disk_t disk;
-	virt_addr_t addr = {0,0};
+	virt_addr_t addr = {0,0,0};
 	int disk_page;
 	BYTE buf[PAGESIZE];
 
@@ -459,7 +460,7 @@ cunit_err_t test_mmu_sync_from_backing_page()
 	ASSERT_EQUALS(ecSuccess, mmu_sync_from_backing_page(&mmu, addr));
 
 	memset(buf, 0, ARRSIZE(buf));
-	ASSERT_EQUALS(ecSuccess, mmu_read(&mmu, addr, 0, PAGESIZE, buf));
+	ASSERT_EQUALS(ecSuccess, mmu_read(&mmu, addr, PAGESIZE, buf));
 	ASSERT_EQUALS(ceSuccess, validate_pattern(&mmu, addr, 0, PAGESIZE, buf));
 
 	ASSERT_EQUALS(ecSuccess, mmu_free_page(&mmu, addr));
@@ -479,7 +480,7 @@ cunit_err_t test_mmu_aging_sanity()
 	mm_t mem;
 	disk_t disk;
 	phys_addr_t paddr;
-	virt_addr_t addr = {0,0};
+	virt_addr_t addr = {0,0,0};
 	BYTE buf[PAGESIZE];
 	int i;
 
@@ -493,7 +494,7 @@ cunit_err_t test_mmu_aging_sanity()
 
 	for (i=0; i < AGING_FREQ * 3; ++i)
 	{
-		ASSERT_EQUALS(ecSuccess, mmu_read(&mmu, addr, 0, PAGESIZE, buf));
+		ASSERT_EQUALS(ecSuccess, mmu_read(&mmu, addr, PAGESIZE, buf));
 	}
 
 	//we expect the aging daemon to run 3 times, and this page was referenced in all 3.
@@ -518,7 +519,7 @@ cunit_err_t test_mmu_aging_2pages_rw()
 	mm_t mem;
 	disk_t disk;
 	phys_addr_t paddr;
-	virt_addr_t addr1 = {0,0}, addr2 = {1,1};
+	virt_addr_t addr1 = {0,0,0}, addr2 = {1,1,0};
 	BYTE buf[PAGESIZE];
 	int i;
 
@@ -533,12 +534,12 @@ cunit_err_t test_mmu_aging_2pages_rw()
 
 	for (i=0; i < AGING_FREQ * 3; ++i)
 	{
-		ASSERT_EQUALS(ecSuccess, mmu_read(&mmu, addr1, 0, PAGESIZE, buf));
+		ASSERT_EQUALS(ecSuccess, mmu_read(&mmu, addr1, PAGESIZE, buf));
 	}
 
 	for (i=0; i < AGING_FREQ * 3; ++i)
 	{
-		ASSERT_EQUALS(ecSuccess, mmu_write(&mmu, addr2, 0, PAGESIZE, buf));
+		ASSERT_EQUALS(ecSuccess, mmu_write(&mmu, addr2, PAGESIZE, buf));
 	}
 
 
