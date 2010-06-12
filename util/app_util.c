@@ -107,6 +107,8 @@ static void print_BYTE_hexa(BYTE* byte)
 {
 	BYTE print = *byte;
 	printf("0x%x", print);
+	if (print == 0x0)
+		printf(" ");
 }
 
 static void print_BYTE_int(BYTE* byte)
@@ -117,7 +119,11 @@ static void print_BYTE_int(BYTE* byte)
 
 static void print_BYTE_char(BYTE* byte)
 {
-	printf("%c",(*byte));
+	char c = *byte;
+	if (c == 0)
+		printf("-");
+	else
+		printf("%c",(*byte));
 }
 
 void print_MMU_table(ipt_t* table)
@@ -345,7 +351,12 @@ void read_process(proc_cont_t* proc_cont, int vaddr, int id, int amount)
 	assert(post != NULL);
 
 	err = compose_mail(proc_cont, id, post);
-	if (err != ecSuccess)
+	if (err == ecNotFound)
+	{
+		printf("ERROR: a process with pid %d could not be found\n", id);
+		post_destroy(post);
+	}
+	else if (err == ecFail)
 	{
 		printf("ERROR: couldn't send message\n");
 		post_destroy(post);
@@ -379,9 +390,14 @@ void loop_read_process(proc_cont_t* proc_cont, int vaddr, int id, int off, int a
 	assert(post != NULL);
 
 	err = compose_mail(proc_cont, id, post);
-	if (err != ecSuccess)
+	if (err == ecNotFound)
 	{
-		printf("ERROR: couldn't send message");
+		printf("ERROR: a process with pid %d could not be found\n", id);
+		post_destroy(post);
+	}
+	else if (err == ecFail)
+	{
+		printf("ERROR: couldn't send message\n");
 		post_destroy(post);
 	}
 }
@@ -414,9 +430,14 @@ void read_to_file_process(proc_cont_t* proc_cont, int vaddr, int id, int amount,
 	assert(post != NULL);
 
 	err = compose_mail(proc_cont, id, post);
-	if (err != ecSuccess)
+	if (err == ecNotFound)
 	{
-		printf("ERROR: couldn't send message");
+		printf("ERROR: a process with pid %d could not be found\n", id);
+		post_destroy(post);
+	}
+	else if (err == ecFail)
+	{
+		printf("ERROR: couldn't send message\n");
 		post_destroy(post);
 	}
 }
@@ -453,9 +474,14 @@ void loop_read_to_file_process(proc_cont_t* proc_cont, int vaddr, int id, int of
 	assert(post != NULL);
 
 	err = compose_mail(proc_cont, id, post);
-	if (err != ecSuccess)
+	if (err == ecNotFound)
 	{
-		printf("ERROR: couldn't send message");
+		printf("ERROR: a process with pid %d could not be found\n", id);
+		post_destroy(post);
+	}
+	else if (err == ecFail)
+	{
+		printf("ERROR: couldn't send message\n");
 		post_destroy(post);
 	}
 }
@@ -487,9 +513,14 @@ void write_process(proc_cont_t* proc_cont, int vaddr, int id, char* s)
 	assert(post != NULL);
 
 	err = compose_mail(proc_cont, id, post);
-	if (err != ecSuccess)
+	if (err == ecNotFound)
 	{
-		printf("ERROR: couldn't send message");
+		printf("ERROR: a process with pid %d could not be found\n", id);
+		post_destroy(post);
+	}
+	else if (err == ecFail)
+	{
+		printf("ERROR: couldn't send message\n");
 		post_destroy(post);
 	}
 }
@@ -525,9 +556,14 @@ void loop_write_process(proc_cont_t* proc_cont, int vaddr, int id, char c, int o
 	assert(post != NULL);
 
 	err = compose_mail(proc_cont, id, post);
-	if (err != ecSuccess)
+	if (err == ecNotFound)
 	{
-		printf("ERROR: couldn't send message");
+		printf("ERROR: a process with pid %d could not be found\n", id);
+		post_destroy(post);
+	}
+	else if (err == ecFail)
+	{
+		printf("ERROR: couldn't send message\n");
 		post_destroy(post);
 	}
 }
