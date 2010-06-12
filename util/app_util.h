@@ -9,11 +9,11 @@
 #define APP_UTIL_H_
 
 #include "vmsim_types.h"
-#include "sim/ipt.h"
-#include "sim/mm.h"
-#include "sim/disk.h"
-#include "sim/mmu.h"
-#include "sim/pcb.h"
+#include "vmsim/ipt.h"
+#include "vmsim/mm.h"
+#include "vmsim/disk.h"
+#include "vmsim/mmu.h"
+#include "vmsim/pcb.h"
 
 typedef struct
 {

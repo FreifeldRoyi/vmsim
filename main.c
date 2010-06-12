@@ -1,5 +1,5 @@
 #include "cunit/cunit.h"
-#include "sim/ui_app.h"
+#include "vmsim/ui_app.h"
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
