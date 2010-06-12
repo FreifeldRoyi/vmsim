@@ -270,7 +270,9 @@ errcode_t sim_read(proc_cont_t* proc_cont, virt_addr_t* vAddr, int off,int amoun
 			fclose(f);
 	}
 	free(buf);
+
 	signal_job_done();
+
 	return err;
 }
 
@@ -291,6 +293,8 @@ errcode_t sim_write(proc_cont_t* proc_cont, virt_addr_t* vAddr, unsigned char* s
 		++multiplier;
 		advance_virt_addr(vAddr, 1,page_size);
 	}
+
+	signal_job_done();
 
 	return err;
 }
@@ -313,6 +317,8 @@ errcode_t sim_loop_write(proc_cont_t* proc_cont, virt_addr_t* vAddr, unsigned ch
 		++multiplier;
 		advance_virt_addr(vAddr, offset,page_size);
 	}
+
+	signal_job_done();
 
 	return err;
 }

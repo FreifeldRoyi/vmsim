@@ -59,42 +59,52 @@ static BOOL command_handler(ui_cmd_t* cmd, app_data_t* app_data)
 	else if (!strcmp("hitRate", cmd -> command))
 	{
 		do_hit_rate(cmd ,app_data);
+		signal_job_done();
 	}
 	else if (!strcmp("printMM", cmd -> command))
 	{
 		do_print_MM(cmd ,app_data);
+		signal_job_done();
 	}
 	else if (!strcmp("printMMUTable", cmd -> command))
 	{
 		do_print_MMU_table(cmd ,app_data);
+		signal_job_done();
 	}
 	else if (!strcmp("printRegisters", cmd -> command))
 	{
 		do_print_registers(cmd ,app_data);
+		signal_job_done();
 	}
 	else if (!strcmp("printHAT", cmd -> command))
 	{
 		do_print_HAT(cmd ,app_data);
+		signal_job_done();
 	}
 	else if (!strcmp("monitor", cmd -> command))
 	{
 		do_monitor(cmd ,app_data);
+		signal_job_done();
 	}
 	else if (!strcmp("noMonitor", cmd -> command))
 	{
 		do_no_monitor(cmd ,app_data);
+		signal_job_done();
 	}
 	else if (!strcmp("debug", cmd -> command))
 	{
 		do_debug_mode(cmd, app_data);
+		signal_job_done();
 	}
 	else if (!strcmp("batchFile", cmd -> command))
 	{
 		to_return = do_batch_file(cmd ,app_data);
+		signal_job_done();
 	}
 	else
 	{
 		printf ("Wrong input, please type again\n");
+		signal_job_done();
 	}
 
 	if (async_wait)
