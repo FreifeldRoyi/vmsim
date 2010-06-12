@@ -714,8 +714,9 @@ int app_main(int argc, char** argv)
 
 		cmd_ret = command_handler(&cmd, &app_data);
 
+		//DEBUG4("command was: %s\ncmd_ret = %d\n!cmd_ret = %d\ncompare = %d",cmd.command,cmd_ret,!cmd_ret,strcmp("batchFile",cmd.command));
 		// ohhhh... this is ugly
-		if (!cmd_ret && strcmp("batchFile", cmd.command))
+		if (!cmd_ret && !strcmp("batchFile", cmd.command))
 			done = TRUE;
 	} while (!done);
 
