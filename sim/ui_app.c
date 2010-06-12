@@ -6,6 +6,7 @@
  */
 #include "ui_app.h"
 #include "util/logger.h"
+#include <malloc.h>
 #include "prm.h"
 #include "aging_daemon.h"
 #include <string.h>
@@ -111,6 +112,14 @@ ui_cmd_t get_command()
 		return ret;
 
 	fgets(ret.param, FILENAME_MAX, stdin);
+
+	//fgets stores '\n' in the buffer FFS!
+	//who was the idiot who wrote that function?!?!?!
+	if (ret.param[strlen(ret.param) - 1] == '\n')
+		ret.param[strlen(ret.param) - 1] = '\0';
+
+	DEBUG1("command is: %s\n",ret.command);
+	DEBUG1("params are: %s\n",ret.param);
 
 	return ret;
 }
@@ -468,7 +477,6 @@ BOOL do_write(ui_cmd_t* cmd, app_data_t* app_data)
 	}
 	else
 		to_return = FALSE;
-
 	return to_return;
 }
 
@@ -618,11 +626,14 @@ BOOL do_batch_file(ui_cmd_t* cmd, app_data_t* app_data)
 	ui_cmd_t batch_cmd;
 
 	FILE* f;
-	BOOL cmd_ret = TRUE;
-	BOOL done = FALSE;
+	//BOOL cmd_ret = TRUE;
+	char* raw_cmd = (char*)malloc((MAX_CMD_LEN + 1 + FILENAME_MAX) * sizeof(char));
+	int nchar = 1; //number of chars read from sscanf
+	char sep;
+	BOOL not_done = TRUE;
 	int line = 0;
 
-	bzero(&batch_cmd,sizeof(ui_cmd_t));
+	assert(raw_cmd != NULL);
 
 	if (APP_DATA_INIT(app_data))
 	{
@@ -635,39 +646,45 @@ BOOL do_batch_file(ui_cmd_t* cmd, app_data_t* app_data)
 		}
 		else
 		{
-			while (fscanf(f, " %s %s \n", batch_cmd.command, batch_cmd.param) != EOF
-					&& cmd_ret
-					&& !done)
+			while (not_done && nchar > 0 && nchar != EOF)
 			{
-				if (strcmp("exit", batch_cmd.command) == 0)
-					done = TRUE;
-				else
-				{
-					++line;
-					cmd_ret = command_handler(&batch_cmd, app_data);
-				}
-			}
-			
-			if (done)
-			{
-				// we return false just in case that the exit command appeared in the file
-				// a little bit ugly though
-				to_return = FALSE;
-			}
-			else if (cmd_ret == FALSE)
-			{
-				printf("Batch file %s command error:\nLine %d: %s %s\n", cmd -> param, line, batch_cmd.command, batch_cmd.param);
-				to_return = TRUE;
-			}
-			else
-				to_return = TRUE;
-		}
+				memset(batch_cmd.command, 0, MAX_CMD_LEN + 1);
+				memset(batch_cmd.param, 0, FILENAME_MAX);
 
-		fclose(f);
+				DEBUG1("Reading line %d\n",line);
+				raw_cmd = fgets(raw_cmd,FILENAME_MAX + MAX_CMD_LEN + 1, f); //TODO holy crap!
+
+				if (raw_cmd[strlen(raw_cmd) - 1] == '\n')
+					raw_cmd[strlen(raw_cmd) - 1] = '\0';
+
+				DEBUG2("[line %d] \"%s\" was read\n", line, raw_cmd);
+				++line;
+
+				nchar = sscanf(raw_cmd, "%14s", batch_cmd.command);
+				DEBUG1("command is: %s\n", batch_cmd.command);
+
+				if (nchar != EOF && nchar > 0)
+				{
+					sep = getc(f);
+					if (sep != '\n')
+					{
+						sscanf(raw_cmd, " %s\n", batch_cmd.param); //no need to check nchar since param input is being checked somewhere else
+						DEBUG1("params are: %s\n", batch_cmd.param);
+					}
+				}
+
+				not_done = command_handler(&batch_cmd, app_data);
+			}
+
+			DEBUG("Batch file end.\n");
+			fclose(f);
+			to_return = TRUE;
+		}
 	}
 	else
 		to_return = FALSE;
 
+	free(raw_cmd);
 	return to_return;
 }
 

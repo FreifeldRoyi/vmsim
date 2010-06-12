@@ -25,6 +25,8 @@ typedef struct _ui_cmd_t
  *	The command that was read, is stored in ui_cmd_t.
  *	The command is stored in cmd.command and the parameters are stored in cmd.params
  *
+ *	@param stream - stream from which data will be read
+ *
  *  @return the string that were read
  */
 ui_cmd_t get_command();
