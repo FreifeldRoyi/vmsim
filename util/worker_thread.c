@@ -30,7 +30,7 @@ void* worker_thread_func(void* arg)
 	WRITE_END(thread);
 
 	DEBUG1("Thread with id %d will now exit\n", thread->tid);
-	pthread_exit(thread->arg);
+	//pthread_exit(thread->arg);
 	return thread->arg;
 }
 

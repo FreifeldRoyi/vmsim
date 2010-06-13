@@ -173,9 +173,20 @@ void print_hit_rate(mmu_t* mmu)
 	printf("Hitrate is %f\n", hitrate);
 }
 
-void print_registers()
+void print_registers(ipt_t* ipt)
 {
-	//TODO implement
+	unsigned i;
+	unsigned mm_size = ipt->size;
+	ipt_lock_all_vaddr(ipt);
+
+	for (i = 0; i < mm_size; ++i)
+	{
+		printf("[Entry %d] ", i);
+		DEBUG2("entry %i age %d", i,ipt->entries[i].page_data.page_age);
+		printf("0x%x\n", ipt->entries[i].page_data.page_age);
+	}
+
+	ipt_unlock_all_vaddr(ipt);
 }
 
 void print_HAT(ipt_t* ipt)
