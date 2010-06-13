@@ -13,6 +13,7 @@
 #include "vmsim/mm.h"
 #include "vmsim/disk.h"
 #include "vmsim/mmu.h"
+#include "vmsim/ipt.h"
 #include "vmsim/pcb.h"
 
 typedef struct
@@ -81,7 +82,7 @@ errcode_t loop_write_process(proc_cont_t* proc_cont, int vaddr, int id, char c, 
 /**
  * prints the registers of the aging algorithm
  */
-void print_registers();
+void print_registers(ipt_t* ipt);
 
 /**
  * prints the HAT

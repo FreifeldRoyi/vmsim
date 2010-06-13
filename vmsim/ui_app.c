@@ -613,7 +613,7 @@ BOOL do_print_registers(ui_cmd_t* cmd, app_data_t* app_data)
 {
 	if (APP_DATA_INIT(app_data))
 	{
-		print_registers();
+		print_registers(&APP_DATA_MMU(app_data)->mem_ipt);
 		return TRUE;
 	}
 	else
@@ -656,7 +656,7 @@ BOOL do_batch_file(ui_cmd_t* cmd, app_data_t* app_data)
 	ui_cmd_t batch_cmd;
 
 	FILE* f;
-	char* raw_cmd = (char*)malloc((MAX_CMD_LEN + 1 + FILENAME_MAX) * sizeof(char));
+	char raw_cmd[MAX_CMD_LEN + 1 + FILENAME_MAX];
 	char* raw_cmd_for;
 	BOOL not_done = TRUE;
 	int line = 1;
@@ -674,12 +674,15 @@ BOOL do_batch_file(ui_cmd_t* cmd, app_data_t* app_data)
 		}
 		else
 		{
-
 			DEBUG1("Reading line %d\n",line);
-			raw_cmd = fgets(raw_cmd, MAX_CMD_LEN + 1 + FILENAME_MAX, f);
+			fgets(raw_cmd, MAX_CMD_LEN + 1 + FILENAME_MAX, f);
 
-			/*if (raw_cmd != NULL && raw_cmd[strlen(raw_cmd) - 1] == '\n')
-				raw_cmd[strlen(raw_cmd) - 1] = '\0';*/
+			if (raw_cmd != NULL && raw_cmd[strlen(raw_cmd) - 1] == '\n')
+			{
+				DEBUG1("raw_cmd[%d] = \\n\n",strlen(raw_cmd) - 1);
+				raw_cmd[strlen(raw_cmd) - 1] = '\0';
+				DEBUG1("raw_cmd[%d] = \\0\n",strlen(raw_cmd));
+			}
 
 			while (not_done && raw_cmd != NULL)//nchar_raw > 0 && nchar_raw != EOF)
 			{
@@ -709,10 +712,14 @@ BOOL do_batch_file(ui_cmd_t* cmd, app_data_t* app_data)
 				not_done = command_handler(&batch_cmd, app_data);
 
 				DEBUG1("Reading line %d\n",line);
-				raw_cmd = fgets(raw_cmd, MAX_CMD_LEN + 1 + FILENAME_MAX, f);
+				fgets(raw_cmd, MAX_CMD_LEN + 1 + FILENAME_MAX, f);
 
-				/*if (raw_cmd != NULL && raw_cmd[strlen(raw_cmd) - 1] == '\n')
-					raw_cmd[strlen(raw_cmd) - 1] = '\0';*/
+				if (raw_cmd != NULL && raw_cmd[strlen(raw_cmd) - 1] == '\n')
+				{
+					DEBUG1("raw_cmd[%d] = \\n\n",strlen(raw_cmd) - 1);
+					raw_cmd[strlen(raw_cmd) - 1] = '\0';
+					DEBUG1("raw_cmd[%d] = \\0\n",strlen(raw_cmd));
+				}
 			}
 
 			DEBUG1("No commands in line %d\nBatch file end.\n",line);
@@ -723,7 +730,7 @@ BOOL do_batch_file(ui_cmd_t* cmd, app_data_t* app_data)
 	else
 		to_return = FALSE;
 
-	free(raw_cmd);
+	//free(raw_cmd);
 	return to_return;
 }
 

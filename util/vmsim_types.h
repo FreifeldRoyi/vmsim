@@ -23,6 +23,7 @@ typedef int BOOL;
 
 typedef unsigned char BYTE;
 #define BYTE_SIZE (sizeof(BYTE) * 8)
+#define UNSIGNED_SIZE (sizeof(unsigned) * 8)
 
 //a process ID
 typedef unsigned procid_t;
