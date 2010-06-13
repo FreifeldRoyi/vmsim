@@ -359,7 +359,6 @@ void mmu_destroy(mmu_t* mmu)
 	mmu_release_alloc_free(mmu);
 
 	pthread_mutex_destroy(&mmu->diskmap_lock);
-	///TODO finish this
 }
 
 #include "tests/mmu_tests.c"

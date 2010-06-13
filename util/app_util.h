@@ -63,35 +63,32 @@ int create_process(app_data_t* app_data);
 void del_process(app_data_t* app_data, procid_t pid);
 
 /**
- * sends a read message to a process
- * will read <i>amount</i> of bytes or less
+ * next group of functions, sends a message to specified process according to
+ * @param id.
+ */
+errcode_t read_process(proc_cont_t* proc_cont, int vaddr, int id, int amount);
+
+errcode_t loop_read_process(proc_cont_t* proc_cont, int vaddr, int id, int off, int amount);
+
+errcode_t read_to_file_process(proc_cont_t* proc_cont, int vaddr, int id, int amount, char* file_name);
+
+errcode_t loop_read_to_file_process(proc_cont_t* proc_cont, int vaddr, int id, int off, int amount, char* file_name);
+
+errcode_t write_process(proc_cont_t* proc_cont, int vaddr, int id, char* s);
+
+errcode_t loop_write_process(proc_cont_t* proc_cont, int vaddr, int id, char c, int off, int amount);
+
+/**
+ * prints the registers of the aging algorithm
+ */
+void print_registers();
+
+/**
+ * prints the HAT
  *
- * @param proc_cont - the process container
- * @param vaddr - the virtual address
- * @param id - the id of the process to send to
- * @param amount - the amount to read
+ * @param ipt - the ipt table
  */
-void read_process(proc_cont_t* proc_cont, int vaddr, int id, int amount);
-
-void loop_read_process(proc_cont_t* proc_cont, int vaddr, int id, int off, int amount);
-
-void read_to_file_process(proc_cont_t* proc_cont, int vaddr, int id, int amount, char* file_name);
-
-void loop_read_to_file_process(proc_cont_t* proc_cont, int vaddr, int id, int off, int amount, char* file_name);
-
-void write_process(proc_cont_t* proc_cont, int vaddr, int id, char* s);
-
-void loop_write_process(proc_cont_t* proc_cont, int vaddr, int id, char c, int off, int amount);
-
-/**
- *prints the registers of the aging algorithm
- */
-//void print_registers(register_t** reg);
-
-/**
- *prints the HAT
- */
-//void print_HAT(hat_t* hat);
+void print_HAT(ipt_t* ipt);
 
 /**
  * switches the given system to Monitor mode
@@ -120,14 +117,24 @@ BOOL load_app_data(char* file_name, app_data_t* app_data);
  */
 void free_app_data(app_data_t* app_data);
 
+/**
+ * used as a lock for printing operations
+ */
 void wait_job_done();
 
+/**
+ * signal printing operations
+ */
 void signal_job_done();
 
+/**
+ * initializes printing lock
+ */
 void init_job_done();
 
+/**
+ * finalizes printing lock
+ */
 void destroy_job_done();
 
 #endif /* APP_UTIL_H_ */
-
-//TODO finish "commented" functions as the project grows

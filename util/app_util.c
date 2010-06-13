@@ -173,6 +173,26 @@ void print_hit_rate(mmu_t* mmu)
 	printf("Hitrate is %f\n", hitrate);
 }
 
+void print_registers()
+{
+	//TODO implement
+}
+
+void print_HAT(ipt_t* ipt)
+{
+	int i;
+
+	ipt_lock_all_vaddr(ipt);
+
+	printf("\nHAT Dump:\n--------\n\nidx|ipt_idx\n--- -------\n");
+	for (i=0; i<ipt->size; ++i)
+	{
+		printf("%3d|%d\n", i, ipt->hat[i].ipt_idx);
+	}
+
+	ipt_unlock_all_vaddr(ipt);
+}
+
 void monitor_on()
 {
 	log_set_level(lvInfo);
@@ -245,15 +265,11 @@ BOOL load_app_data(char* file_name, app_data_t* app_data)
 	mmu_init(mmu, mm, disk, shift_clock);
 
 	APP_DATA_PROC_CONT(app_data) = init_proc_cont(nproc, n_proc_pages, mmu);
-	//TODO if any more fields are added to the app_data struct, don't forget to handle here
 	err = prm_init(mmu);
 	assert(err == ecSuccess);
 
 	err = aging_daemon_start(mmu);
 	assert(err == ecSuccess);
-
-	//TODO seg fault in fclose(f);
-	//fclose(f);
 
 	APP_DATA_INIT(app_data) = TRUE;
 
@@ -320,9 +336,6 @@ void del_process(app_data_t* app_data, procid_t pid)
 	{
 		printf("Process %u was deleted\n", pid);
 	}
-
-	//we just deal with error printing here
-	//no need for success print
 }
 
 static void make_virt_addr(virt_addr_t* vaddr, int user_addr, int page_size, int pid)
@@ -332,7 +345,7 @@ static void make_virt_addr(virt_addr_t* vaddr, int user_addr, int page_size, int
 	vaddr -> pid = pid;
 }
 
-void read_process(proc_cont_t* proc_cont, int vaddr, int id, int amount)
+errcode_t read_process(proc_cont_t* proc_cont, int vaddr, int id, int amount)
 {
 	errcode_t err;
 	post_t* post;
@@ -365,9 +378,11 @@ void read_process(proc_cont_t* proc_cont, int vaddr, int id, int amount)
 		printf("ERROR: couldn't send message\n");
 		post_destroy(post);
 	}
+
+	return err;
 }
 
-void loop_read_process(proc_cont_t* proc_cont, int vaddr, int id, int off, int amount)
+errcode_t loop_read_process(proc_cont_t* proc_cont, int vaddr, int id, int off, int amount)
 {
 	errcode_t err;
 	post_t* post;
@@ -404,9 +419,11 @@ void loop_read_process(proc_cont_t* proc_cont, int vaddr, int id, int off, int a
 		printf("ERROR: couldn't send message\n");
 		post_destroy(post);
 	}
+
+	return err;
 }
 
-void read_to_file_process(proc_cont_t* proc_cont, int vaddr, int id, int amount, char* file_name)
+errcode_t read_to_file_process(proc_cont_t* proc_cont, int vaddr, int id, int amount, char* file_name)
 {
 	errcode_t err;
 	post_t* post;
@@ -444,9 +461,11 @@ void read_to_file_process(proc_cont_t* proc_cont, int vaddr, int id, int amount,
 		printf("ERROR: couldn't send message\n");
 		post_destroy(post);
 	}
+
+	return err;
 }
 
-void loop_read_to_file_process(proc_cont_t* proc_cont, int vaddr, int id, int off, int amount, char* file_name)
+errcode_t loop_read_to_file_process(proc_cont_t* proc_cont, int vaddr, int id, int off, int amount, char* file_name)
 {
 	errcode_t err;
 	post_t* post;
@@ -488,9 +507,11 @@ void loop_read_to_file_process(proc_cont_t* proc_cont, int vaddr, int id, int of
 		printf("ERROR: couldn't send message\n");
 		post_destroy(post);
 	}
+
+	return err;
 }
 
-void write_process(proc_cont_t* proc_cont, int vaddr, int id, char* s)
+errcode_t write_process(proc_cont_t* proc_cont, int vaddr, int id, char* s)
 {
 	errcode_t err;
 	post_t* post;
@@ -527,9 +548,11 @@ void write_process(proc_cont_t* proc_cont, int vaddr, int id, char* s)
 		printf("ERROR: couldn't send message\n");
 		post_destroy(post);
 	}
+
+	return err;
 }
 
-void loop_write_process(proc_cont_t* proc_cont, int vaddr, int id, char c, int off, int amount)
+errcode_t loop_write_process(proc_cont_t* proc_cont, int vaddr, int id, char c, int off, int amount)
 {
 	errcode_t err;
 	post_t* post;
@@ -570,6 +593,8 @@ void loop_write_process(proc_cont_t* proc_cont, int vaddr, int id, char c, int o
 		printf("ERROR: couldn't send message\n");
 		post_destroy(post);
 	}
+
+	return err;
 }
 
 
