@@ -678,8 +678,8 @@ BOOL do_batch_file(ui_cmd_t* cmd, app_data_t* app_data)
 			DEBUG1("Reading line %d\n",line);
 			raw_cmd = fgets(raw_cmd, MAX_CMD_LEN + 1 + FILENAME_MAX, f);
 
-			if (raw_cmd != NULL && raw_cmd[strlen(raw_cmd) - 1] == '\n')
-				raw_cmd[strlen(raw_cmd) - 1] = '\0';
+			/*if (raw_cmd != NULL && raw_cmd[strlen(raw_cmd) - 1] == '\n')
+				raw_cmd[strlen(raw_cmd) - 1] = '\0';*/
 
 			while (not_done && raw_cmd != NULL)//nchar_raw > 0 && nchar_raw != EOF)
 			{
@@ -696,16 +696,23 @@ BOOL do_batch_file(ui_cmd_t* cmd, app_data_t* app_data)
 				{
 					raw_cmd_for = raw_cmd + strlen(batch_cmd.command) + 1;
 					memcpy(batch_cmd.param,raw_cmd_for, strlen(raw_cmd_for) * sizeof(char));
+
+					if (batch_cmd.param[strlen(batch_cmd.param) - 1] == '\n')
+						batch_cmd.param[strlen(batch_cmd.param) - 1] = '\0';
+
 					DEBUG1("params are: %s\n", batch_cmd.param);
 				}
+
+				if (batch_cmd.command[strlen(batch_cmd.command) - 1] == '\n')
+					batch_cmd.command[strlen(batch_cmd.command) - 1] = '\0';
 
 				not_done = command_handler(&batch_cmd, app_data);
 
 				DEBUG1("Reading line %d\n",line);
 				raw_cmd = fgets(raw_cmd, MAX_CMD_LEN + 1 + FILENAME_MAX, f);
 
-				if (raw_cmd != NULL && raw_cmd[strlen(raw_cmd) - 1] == '\n')
-					raw_cmd[strlen(raw_cmd) - 1] = '\0';
+				/*if (raw_cmd != NULL && raw_cmd[strlen(raw_cmd) - 1] == '\n')
+					raw_cmd[strlen(raw_cmd) - 1] = '\0';*/
 			}
 
 			DEBUG1("No commands in line %d\nBatch file end.\n",line);
@@ -730,6 +737,7 @@ int app_main(int argc, char** argv)
 
 	BOOL done = FALSE;
 	BOOL cmd_ret = FALSE;
+
 	memset(&app_data, 0, sizeof(app_data));
 
 	if (argc != 2)

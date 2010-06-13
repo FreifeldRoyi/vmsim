@@ -135,6 +135,7 @@ errcode_t process_destroy(proc_cont_t* proc_cont, procid_t id)
 
 	if (id >= (unsigned)PROC_CONT_N_PROC(proc_cont))
 	{
+		DEBUG("ID is not within range");
 		pthread_mutex_unlock(&PROC_CONT_MTX(proc_cont));
 		return ecFail;
 	}
@@ -143,11 +144,12 @@ errcode_t process_destroy(proc_cont_t* proc_cont, procid_t id)
 
 	if (PROC_JUNK(this_proc))
 	{
+		DEBUG1("Process %d is JUNK\n", id);
 		pthread_mutex_unlock(&PROC_CONT_MTX(proc_cont));
 		return ecNotFound;
 	}
 
-	post_t* post = create_post(fcDel,NULL, 0);
+	post_t* post = create_post(fcDel, NULL, 0);
 	err = compose_mail(proc_cont, id, post);
 
 	if (err != ecSuccess)
@@ -159,7 +161,6 @@ errcode_t process_destroy(proc_cont_t* proc_cont, procid_t id)
 	pthread_cond_wait(&PROC_CONT_DEL(proc_cont), &PROC_CONT_MTX(proc_cont));
 	pthread_mutex_unlock(&PROC_CONT_MTX(proc_cont));
 
-	//READ_END(&PROC_CONT_LOCK(proc_cont));
 	return ecSuccess;
 }
 
@@ -169,7 +170,7 @@ errcode_t proc_cont_destroy(proc_cont_t* proc_cont)
 
 	if (proc_cont == NULL)
 	{
-		return ecNotFound;
+		return ecFail;
 	}
 
 	for (i = 0; i < PROC_CONT_N_PROC(proc_cont); ++i)
@@ -185,6 +186,7 @@ errcode_t proc_cont_destroy(proc_cont_t* proc_cont)
 	//considered junk only if thread,mail_box,mail_mutex,no_mail was freed
 	free(PROC_CONT_PRC(proc_cont));
 	PROC_CONT_PRC(proc_cont) = NULL;
+	free(proc_cont);
 
 	//disk data will be destroyed with process deletion and disk deletion
 

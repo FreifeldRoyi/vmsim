@@ -194,29 +194,46 @@ errcode_t process_dealloc(proc_cont_t* proc_cont, procid_t pid)
 	assert(PROC_JUNK(this_proc) == FALSE);
 	assert(PROC_DEL(this_proc) == TRUE);
 
+	DEBUG1("Destroying Process %d\n", pid);
 	pthread_mutex_lock(&PROC_MAIL_LOCK(this_proc));
 	while (queue_size(PROC_MAIL(this_proc)) != 0)
 	{
+		DEBUG("Popping item\n");
 		queue_pop(PROC_MAIL(this_proc));
 	}
 
+	DEBUG("Destroying queue\n");
 	queue_destroy(PROC_MAIL(this_proc));
 	PROC_MAIL(this_proc) = NULL;
 	pthread_mutex_unlock(&PROC_MAIL_LOCK(this_proc));
 
+	DEBUG("Destroying mail mutex\n");
 	pthread_mutex_destroy(&PROC_MAIL_LOCK(this_proc));
+
+	DEBUG("Destroying no_mail condition\n");
 	pthread_cond_destroy(&PROC_COND(this_proc));
 
+	DEBUG("Deallocate mmu memory\n");
 	mmu_free_multiple(mmu, vAddr, PROC_CONT_PRC_BLK_SZE(proc_cont));
+
+	DEBUG("Deallocate pcb on disk\n");
 	disk_free_process_block(disk, PROC_STRT(this_proc));
 
+	DEBUG("Deleting thread\n");
 	worker_thread_destroy(&PROC_THRD(this_proc));
+
+	DEBUG("Assigning junk = TRUE\n");
 	PROC_JUNK(this_proc) = TRUE;
 
+	DEBUG("Freeing function argument\n");
 	func_arg_destroy(this_proc->proc_thrd_arg);
 
+	DEBUG("Signaling process container over del wait\n");
 	pthread_cond_signal(&PROC_CONT_DEL(proc_cont));
+
+	DEBUG("Unlocking mutex\n");
 	pthread_mutex_unlock(&PROC_CONT_MTX(proc_cont));
+
 	return ecSuccess;
 }
 

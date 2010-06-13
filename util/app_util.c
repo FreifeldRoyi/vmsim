@@ -278,8 +278,14 @@ BOOL load_app_data(char* file_name, app_data_t* app_data)
 
 void free_app_data(app_data_t* app_data)
 {
+	unsigned pid;
 	proc_cont_t* proc_cont = APP_DATA_PROC_CONT(app_data);
 	mmu_t* mmu = PROC_CONT_MMU(proc_cont);
+
+	for (pid = 0; pid < PROC_CONT_N_PROC(proc_cont); ++pid)
+	{
+		process_destroy(proc_cont, pid);
+	}
 
 	prm_destroy();
 	aging_daemon_stop();
@@ -298,8 +304,6 @@ void free_app_data(app_data_t* app_data)
 	free(mmu);
 
 	proc_cont_destroy(proc_cont);
-	free(proc_cont);
-
 }
 
 int create_process(app_data_t* app_data)
