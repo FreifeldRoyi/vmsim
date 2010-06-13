@@ -213,6 +213,7 @@ BOOL do_read(ui_cmd_t* cmd, app_data_t* app_data)
 	unsigned params[3];
 
 	int err = 1;
+	errcode_t errcode;
 
 	int tok_count = 0;
 
@@ -242,8 +243,8 @@ BOOL do_read(ui_cmd_t* cmd, app_data_t* app_data)
 			}
 			else
 			{
-				read_process(APP_DATA_PROC_CONT(app_data), params[0], params[1], params[2]);
-				to_return = TRUE;
+				errcode = read_process(APP_DATA_PROC_CONT(app_data), params[0], params[1], params[2]);
+				to_return = errcode == ecSuccess ? TRUE : FALSE;
 			}
 		}
 		else
@@ -265,6 +266,7 @@ BOOL do_loop_read(ui_cmd_t* cmd, app_data_t* app_data)
 	unsigned params[4];
 
 	int err = 1;
+	errcode_t errcode;
 
 	int tok_count = 0;
 
@@ -294,8 +296,8 @@ BOOL do_loop_read(ui_cmd_t* cmd, app_data_t* app_data)
 			}
 			else
 			{
-				loop_read_process(APP_DATA_PROC_CONT(app_data), params[0], params[1], params[2], params[3]);
-				to_return = TRUE;
+				errcode = loop_read_process(APP_DATA_PROC_CONT(app_data), params[0], params[1], params[2], params[3]);
+				to_return = errcode == ecSuccess ? TRUE : FALSE;
 			}
 		}
 		else
@@ -317,6 +319,7 @@ BOOL do_read_to_file(ui_cmd_t* cmd, app_data_t* app_data)
 	unsigned params[3];
 
 	int err = 1;
+	errcode_t errcode;
 
 	int tok_count = 0;
 
@@ -346,8 +349,8 @@ BOOL do_read_to_file(ui_cmd_t* cmd, app_data_t* app_data)
 				{
 					++tok_count;
 
-					read_to_file_process(APP_DATA_PROC_CONT(app_data), params[0], params[1], params[2], token);
-					to_return = TRUE;
+					errcode = read_to_file_process(APP_DATA_PROC_CONT(app_data), params[0], params[1], params[2], token);
+					to_return = errcode == ecSuccess ? TRUE : FALSE;
 				}
 				else
 				{
@@ -380,6 +383,7 @@ BOOL do_loop_read_to_file(ui_cmd_t* cmd, app_data_t* app_data)
 	unsigned params[4];
 
 	int err = 1;
+	errcode_t errcode;
 
 	int tok_count = 0;
 
@@ -409,8 +413,8 @@ BOOL do_loop_read_to_file(ui_cmd_t* cmd, app_data_t* app_data)
 				{
 					++tok_count;
 
-					loop_read_to_file_process(APP_DATA_PROC_CONT(app_data), params[0], params[1], params[2], params[3], token);
-					to_return = TRUE;
+					errcode = loop_read_to_file_process(APP_DATA_PROC_CONT(app_data), params[0], params[1], params[2], params[3], token);
+					to_return = errcode == ecSuccess ? TRUE : FALSE;
 				}
 				else
 				{
@@ -444,6 +448,8 @@ BOOL do_write(ui_cmd_t* cmd, app_data_t* app_data)
 	char* s;
 
 	int err = 1;
+	errcode_t errcode;
+
 	int tok_count = 0;
 
 	char* token;
@@ -475,9 +481,9 @@ BOOL do_write(ui_cmd_t* cmd, app_data_t* app_data)
 					s = token;
 					++tok_count;
 
-					write_process(APP_DATA_PROC_CONT(app_data), params[0], params[1], token);
+					errcode = write_process(APP_DATA_PROC_CONT(app_data), params[0], params[1], token);
 
-					to_return = TRUE;
+					to_return = errcode == ecSuccess ? TRUE : FALSE;
 				}
 				else
 				{
@@ -499,6 +505,7 @@ BOOL do_write(ui_cmd_t* cmd, app_data_t* app_data)
 	}
 	else
 		to_return = FALSE;
+
 	return to_return;
 }
 
@@ -510,6 +517,8 @@ BOOL do_loop_write(ui_cmd_t* cmd, app_data_t* app_data)
 	char* s;
 
 	int err = 1;
+	errcode_t errcode;
+
 	int tok_count = 0;
 
 	char* token;
@@ -551,8 +560,8 @@ BOOL do_loop_write(ui_cmd_t* cmd, app_data_t* app_data)
 			}
 			else
 			{
-				loop_write_process(APP_DATA_PROC_CONT(app_data), params[0], params[1], s[0], params[2], params[3]);
-				to_return = TRUE;
+				errcode = loop_write_process(APP_DATA_PROC_CONT(app_data), params[0], params[1], s[0], params[2], params[3]);
+				to_return = errcode == ecSuccess ? TRUE : FALSE;
 			}
 		}
 		else
@@ -604,24 +613,22 @@ BOOL do_print_registers(ui_cmd_t* cmd, app_data_t* app_data)
 {
 	if (APP_DATA_INIT(app_data))
 	{
-		//print_MM(&APP_DATA_MM(app_data));
+		print_registers();
 		return TRUE;
 	}
 	else
 		return FALSE;
-	//TODO implement
 }
 
 BOOL do_print_HAT(ui_cmd_t* cmd, app_data_t* app_data)
 {
 	if (APP_DATA_INIT(app_data))
 	{
-		//print_MM(&APP_DATA_MM(app_data));
+		print_HAT(&APP_DATA_MMU(app_data) -> mem_ipt);
 		return TRUE;
 	}
 	else
 		return FALSE;
-	//TODO implement
 }
 
 BOOL do_monitor(ui_cmd_t* cmd, app_data_t* app_data)
@@ -642,7 +649,6 @@ BOOL do_debug_mode(ui_cmd_t* cmd, app_data_t* app_data)
 	return TRUE;
 }
 
-//TODO fix batch parser
 BOOL do_batch_file(ui_cmd_t* cmd, app_data_t* app_data)
 {
 	BOOL to_return = FALSE;
@@ -650,11 +656,8 @@ BOOL do_batch_file(ui_cmd_t* cmd, app_data_t* app_data)
 	ui_cmd_t batch_cmd;
 
 	FILE* f;
-	//BOOL cmd_ret = TRUE;
 	char* raw_cmd = (char*)malloc((MAX_CMD_LEN + 1 + FILENAME_MAX) * sizeof(char));
 	char* raw_cmd_for;
-	//int nchar_raw; //number of chars read from sscanf
-	//int nchar_cmd;
 	BOOL not_done = TRUE;
 	int line = 1;
 

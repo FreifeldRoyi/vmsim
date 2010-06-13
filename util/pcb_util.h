@@ -152,12 +152,38 @@ errcode_t loop_write_decoder(proc_cont_t* proc_cont, post_t* post);
 errcode_t process_dealloc(proc_cont_t* prc, procid_t pid);
 
 /**
- * TODO documentation
+ * Process reads from its memory @param amount of times
+ * will read until the end of the memory
+ *
+ * @param proc_cont - process container
+ * @param vAddr - virtual address struct
+ * @param off - jump size of each read
+ * @param amount - times to read
+ * @param file_name - output destination or NULL for stdout
  */
 errcode_t sim_read(proc_cont_t* proc_cont, virt_addr_t* vAddr, int off,int amount, char* file_name);
 
+/**
+ * Process writes to its memory @param amount of times
+ * will write untill the end of pcb
+ *
+ * @param proc_cont - process container
+ * @param vAddr - virtual address struct
+ * @param s - string to write
+ * @param amount - times to write
+ */
 errcode_t sim_write(proc_cont_t* proc_cont, virt_addr_t* vAddr, unsigned char* s, int amount);
 
+/**
+ * Process writes to its memory @param amount of times with @param offset jumps
+ * will write untill end of pcb
+ *
+ * @param proc_cont - process container
+ * @param vAddr - virtual address struct
+ * @param c - char to write
+ * @param offset - size of jump
+ * @param amount - times to write
+ */
 errcode_t sim_loop_write(proc_cont_t* proc_cont, virt_addr_t* vAddr, unsigned char c, int offset,int amount);
 
 

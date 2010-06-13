@@ -11,8 +11,6 @@ pid_t cur_tid()
 	return syscall(SYS_gettid);
 }
 
-///TODO add synchronization - I think we're done
-
 static log_level_t g_log_level = lvError;
 
 void log_write(	const char* file, int line, const char* func,
