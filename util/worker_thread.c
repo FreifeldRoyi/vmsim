@@ -1,4 +1,5 @@
 #include "worker_thread.h"
+#include "logger.h"
 
 #define READ_START(_thread) rwlock_acquire_read(&(_thread)->lock)
 #define READ_END(_thread) rwlock_release_read(&(_thread)->lock)
@@ -28,6 +29,8 @@ void* worker_thread_func(void* arg)
 	thread->running = FALSE;
 	WRITE_END(thread);
 
+	DEBUG1("Thread with id %d will now exit\n", thread->tid);
+	pthread_exit(thread->arg);
 	return thread->arg;
 }
 
