@@ -677,6 +677,11 @@ BOOL do_batch_file(ui_cmd_t* cmd, app_data_t* app_data)
 			DEBUG1("Reading line %d\n",line);
 			fgets(raw_cmd, MAX_CMD_LEN + 1 + FILENAME_MAX, f);
 
+			if (fgets(raw_cmd, MAX_CMD_LEN + 1 + FILENAME_MAX, f))
+			{
+				break;
+			}
+
 			if (raw_cmd != NULL && raw_cmd[strlen(raw_cmd) - 1] == '\n')
 			{
 				DEBUG1("raw_cmd[%d] = \\n\n",strlen(raw_cmd) - 1);
@@ -712,7 +717,12 @@ BOOL do_batch_file(ui_cmd_t* cmd, app_data_t* app_data)
 				not_done = command_handler(&batch_cmd, app_data);
 
 				DEBUG1("Reading line %d\n",line);
-				fgets(raw_cmd, MAX_CMD_LEN + 1 + FILENAME_MAX, f);
+
+
+				if (fgets(raw_cmd, MAX_CMD_LEN + 1 + FILENAME_MAX, f))
+				{
+					break;
+				}
 
 				if (raw_cmd != NULL && raw_cmd[strlen(raw_cmd) - 1] == '\n')
 				{
