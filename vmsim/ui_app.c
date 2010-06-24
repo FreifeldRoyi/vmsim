@@ -661,8 +661,6 @@ BOOL do_batch_file(ui_cmd_t* cmd, app_data_t* app_data)
 	BOOL not_done = TRUE;
 	int line = 1;
 
-	assert(raw_cmd != NULL);
-
 	if (APP_DATA_INIT(app_data))
 	{
 		f = fopen(cmd -> param, "r");
@@ -675,21 +673,20 @@ BOOL do_batch_file(ui_cmd_t* cmd, app_data_t* app_data)
 		else
 		{
 			DEBUG1("Reading line %d\n",line);
-			fgets(raw_cmd, MAX_CMD_LEN + 1 + FILENAME_MAX, f);
 
 			if (fgets(raw_cmd, MAX_CMD_LEN + 1 + FILENAME_MAX, f))
 			{
-				break;
+				not_done = FALSE;
 			}
 
-			if (raw_cmd != NULL && raw_cmd[strlen(raw_cmd) - 1] == '\n')
+			if ( raw_cmd[strlen(raw_cmd) - 1] == '\n')
 			{
 				DEBUG1("raw_cmd[%d] = \\n\n",strlen(raw_cmd) - 1);
 				raw_cmd[strlen(raw_cmd) - 1] = '\0';
 				DEBUG1("raw_cmd[%d] = \\0\n",strlen(raw_cmd));
 			}
 
-			while (not_done && raw_cmd != NULL)//nchar_raw > 0 && nchar_raw != EOF)
+			while (not_done)//nchar_raw > 0 && nchar_raw != EOF)
 			{
 				memset(batch_cmd.command, 0, MAX_CMD_LEN + 1);
 				memset(batch_cmd.param, 0, FILENAME_MAX);
@@ -724,7 +721,7 @@ BOOL do_batch_file(ui_cmd_t* cmd, app_data_t* app_data)
 					break;
 				}
 
-				if (raw_cmd != NULL && raw_cmd[strlen(raw_cmd) - 1] == '\n')
+				if (raw_cmd[strlen(raw_cmd) - 1] == '\n')
 				{
 					DEBUG1("raw_cmd[%d] = \\n\n",strlen(raw_cmd) - 1);
 					raw_cmd[strlen(raw_cmd) - 1] = '\0';
