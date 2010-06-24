@@ -10,6 +10,7 @@
 #include "logger.h"
 #include <malloc.h>
 #include <assert.h>
+#include <stdio.h>
 
 errcode_t compose_mail(proc_cont_t* proc_cont, procid_t pid, post_t* post)
 {

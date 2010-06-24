@@ -13,6 +13,7 @@
 #include <string.h>
 #include <malloc.h>
 #include <assert.h>
+#include <stdio.h>
 
 //printing cond
 pthread_cond_t job_done_cond;

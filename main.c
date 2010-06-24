@@ -6,6 +6,9 @@
 
 #ifdef VMSIM_RUN_TESTS
 
+#pragma GCC diagnostic ignored "-Wimplicit-function-declaration"
+
+
 int main()
 {
 	add_queue_tests();
@@ -21,6 +24,7 @@ int main()
 	cunit_destroy();
 	return 0;
 }
+
 
 #else
 
