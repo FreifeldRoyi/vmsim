@@ -635,6 +635,112 @@ cunit_err_t test_mmu_alloc_free_pagefault_aging_stats_stress()
 	return err;
 }
 
+typedef struct
+{
+	mmu_t* mmu;
+	int pid;
+}loop_writer_params_t;
+
+BOOL loop_writer_thread(void* arg)
+{
+	loop_writer_params_t* params = arg;
+	BYTE data = (BYTE)params->pid;
+	virt_addr_t addr;
+	int i;
+	int page_size = params->mmu->mem->page_size;
+	int npages = params->mmu->disk->process_block_size;
+
+	VIRT_ADDR_PID(addr) = params->pid;
+	VIRT_ADDR_PAGE(addr) = 0;
+
+	for (i=0; i< page_size * npages; ++i)
+	{
+		VIRT_ADDR_PAGE(addr) = i/page_size;
+		VIRT_ADDR_OFFSET(addr) = i%page_size;
+		ASSERT_EQUALS(ecSuccess, mmu_write(params->mmu, addr, 1, &data));
+	}
+
+	for (i=0; i< page_size * npages; ++i)
+	{
+		data = 0;
+		VIRT_ADDR_PAGE(addr) = i/page_size;
+		VIRT_ADDR_OFFSET(addr) = i%page_size;
+		ASSERT_EQUALS(ecSuccess, mmu_read(params->mmu, addr, 1, &data));
+		ASSERT_EQUALS(params->pid, data);
+	}
+
+	return FALSE;
+}
+
+cunit_err_t do_test_mmu_submission_test(int nprocs,
+										int page_size,
+										int mm_npages,
+										int disk_npages,
+										int proc_npages,
+										int aging_freq)
+{
+	mmu_t mmu;
+	mm_t mem;
+	disk_t disk;
+	worker_thread_t threads[nprocs];
+	loop_writer_params_t params[nprocs];
+	int i;
+	int disk_page;
+	virt_addr_t addr = {0,0,0};
+
+	ASSERT_EQUALS(ecSuccess, mm_init(&mem, mm_npages, page_size));
+	ASSERT_EQUALS(ecSuccess, disk_init(&disk,disk_npages, page_size, proc_npages));
+	ASSERT_EQUALS(ecSuccess, mmu_init(&mmu, &mem, &disk, aging_freq));
+
+	ASSERT_EQUALS(ecSuccess, aging_daemon_start(&mmu));
+	ASSERT_EQUALS(ecSuccess, prm_init(&mmu));
+
+	for (i=0; i<nprocs; ++i)
+	{
+		worker_thread_create(&threads[i],loop_writer_thread);
+		params[i].pid = i;
+		params[i].mmu = &mmu;
+		disk_alloc_process_block(mmu.disk, &disk_page);
+		VIRT_ADDR_PID(addr) = i;
+		mmu_alloc_multiple(&mmu, addr, proc_npages, disk_page);
+	}
+
+	for (i=0; i<nprocs; ++i)
+	{
+		worker_thread_start(&threads[i],&params[i]);
+	}
+
+	sleep(5);
+
+	for (i=0; i<nprocs; ++i)
+	{
+		worker_thread_stop(&threads[i]);
+		worker_thread_destroy(&threads[i]);
+	}
+
+	prm_destroy();
+	mmu_destroy(&mmu);
+	disk_destroy(&disk);
+	mm_destroy(&mem);
+
+	return ceSuccess;
+}
+
+cunit_err_t test_mmu_submission_test1()
+{
+	return do_test_mmu_submission_test(2,8,2,8,4,2);
+}
+
+cunit_err_t test_mmu_submission_test2()
+{
+	return do_test_mmu_submission_test(6,16,16,96,16,32);
+}
+
+cunit_err_t test_mmu_submission_test3()
+{
+	return do_test_mmu_submission_test(16,1024,512,16384,1024,512);
+}
+
 void add_mmu_tests()
 {
 	ADD_TEST(test_mmu_alloc_free_sanity);
@@ -652,4 +758,7 @@ void add_mmu_tests()
 	ADD_TEST(test_mmu_alloc_free_pagefault_hatlock_stress);
 	ADD_TEST(test_mmu_alloc_free_pagefault_aging_stress);
 	ADD_TEST(test_mmu_alloc_free_pagefault_aging_stats_stress);
+	ADD_TEST(test_mmu_submission_test1);
+	ADD_TEST(test_mmu_submission_test2);
+	ADD_TEST(test_mmu_submission_test3);
 }

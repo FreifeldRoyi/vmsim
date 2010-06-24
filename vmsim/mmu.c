@@ -313,7 +313,8 @@ errcode_t mmu_sync_from_backing_page(mmu_t* mmu, virt_addr_t page)
 	}
 
 	errcode = map_get(&mmu->disk_map, &page, &disk_page);
-	assert(errcode != ecNotFound);
+	assert(errcode != ecNotFound);  //if this assert fails it means the page has no
+									//backing store.
 	if (errcode != ecSuccess)
 	{
 		return ecFail;
