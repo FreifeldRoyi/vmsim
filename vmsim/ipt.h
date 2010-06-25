@@ -33,7 +33,7 @@ typedef struct {
 
 	int ipt_idx;
 
-	rwlock_t lock;
+	pthread_mutex_t lock;
 
 }hat_entry_t;
 
