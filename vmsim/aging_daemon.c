@@ -64,6 +64,13 @@ BOOL daemon_func(void* arg)
 	return FALSE;
 }
 
+static BOOL aging_daemon_should_update()
+{
+	pthread_mutex_lock(&daemon_mutex);
+	return should_update;
+	pthread_mutex_unlock(&daemon_mutex);
+}
+
 errcode_t aging_daemon_update_pages()
 {
 	assert(worker_thread_is_running(&daemon_thread));
@@ -71,7 +78,7 @@ errcode_t aging_daemon_update_pages()
 	should_update = TRUE;
 	pthread_cond_broadcast(&should_update_condvar);
 	pthread_mutex_unlock(&daemon_mutex);
-	while (should_update)
+	while (aging_daemon_should_update())
 		;
 	return ecSuccess;
 }
