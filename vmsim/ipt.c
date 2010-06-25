@@ -25,12 +25,12 @@ static int ipt_hat_idx_of(ipt_t* ipt, virt_addr_t addr)
 void ipt_lock_vaddr(ipt_t* ipt, virt_addr_t addr)
 {
 	rwlock_acquire_read(&ipt->hat_lock);
-	rwlock_acquire_write(&ipt->hat[ipt_hash(ipt, addr)].lock);
+	pthread_mutex_lock(&ipt->hat[ipt_hash(ipt, addr)].lock);
 }
 
 void ipt_unlock_vaddr(ipt_t* ipt, virt_addr_t addr)
 {
-	rwlock_release_write(&ipt->hat[ipt_hash(ipt, addr)].lock);
+	pthread_mutex_unlock(&ipt->hat[ipt_hash(ipt, addr)].lock);
 	rwlock_release_read(&ipt->hat_lock);
 }
 
@@ -118,7 +118,7 @@ errcode_t ipt_init(ipt_t* ipt, int size)
 		ipt->entries[i].next =
 			ipt->entries[i].prev = IPT_INVALID;
 		ipt->hat[i].ipt_idx = IPT_INVALID;
-		rwlock_init(&ipt->hat[i].lock);
+		pthread_mutex_init(&ipt->hat[i].lock, NULL);
 		queue_push(ipt->free_pages, (void*)i);
 	}
 
@@ -333,7 +333,7 @@ void ipt_destroy(ipt_t* ipt)
 
 	for (i=0; i < ipt->size; ++i)
 	{
-		rwlock_destroy(&ipt->hat[i].lock);
+		pthread_mutex_destroy(&ipt->hat[i].lock);
 	}
 
 	rwlock_destroy(&ipt->hat_lock);
