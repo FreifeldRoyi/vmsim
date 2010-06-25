@@ -66,9 +66,11 @@ BOOL daemon_func(void* arg)
 
 static BOOL aging_daemon_should_update()
 {
+	BOOL ret;
 	pthread_mutex_lock(&daemon_mutex);
-	return should_update;
+	ret = should_update;
 	pthread_mutex_unlock(&daemon_mutex);
+	return ret;
 }
 
 errcode_t aging_daemon_update_pages()
