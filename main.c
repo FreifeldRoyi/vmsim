@@ -1,5 +1,6 @@
 #include "cunit/cunit.h"
 #include "vmsim/ui_app.h"
+#include "util/logger.h"
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -9,8 +10,19 @@
 #pragma GCC diagnostic ignored "-Wimplicit-function-declaration"
 
 
-int main()
+int main(int argc, char* argv[])
 {
+	if (argc > 1)
+	{
+		if (!strcmp(argv[1], "debug"))
+		{
+			log_set_level(lvDebug);
+		}
+		if (!strcmp(argv[1], "info"))
+		{
+			log_set_level(lvInfo);
+		}
+	}
 	add_queue_tests();
 	add_bitmap_tests();
 	add_ipt_tests();
