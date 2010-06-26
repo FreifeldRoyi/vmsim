@@ -79,7 +79,8 @@ static void get_oldest_page(phys_addr_t mem_page, page_data_t* page)
 		cur_idx = 0;
 	}
 
-	if (((age > oldest_page_age) || (oldest_page_idx == -1))&&
+	///actually age works in reverse - the more leading '0's it has, the older it is.
+	if (((age < oldest_page_age) || (oldest_page_idx == -1))&&
 		(!VIRT_ADDR_PAGE_EQ(swap_target, page->addr)))
 	{
 		oldest_page_idx = cur_idx;
