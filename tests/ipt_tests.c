@@ -185,9 +185,10 @@ cunit_err_t test_ipt_reference()
 	ipt_ref_t reftype;
 	unsigned refcount;
 
+	ASSERT_EQUALS(ecSuccess, ipt_init(&ipt, NPAGES));
+
 	for (reftype = refRead; reftype <= refWrite; ++reftype)
 	{
-		ASSERT_EQUALS(ecSuccess, ipt_init(&ipt, NPAGES));
 		for (i=0;i<NPAGES; ++i)
 		{
 			VIRT_ADDR_PAGE(addr) = i % (NPAGES/3);
