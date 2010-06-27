@@ -11,7 +11,9 @@
 
 static worker_thread_t daemon_thread;
 static pthread_cond_t should_update_condvar;
-static BOOL should_update;
+static pthread_cond_t done_updating_condvar;
+static volatile BOOL should_update;
+static volatile BOOL done_updating;
 static pthread_mutex_t daemon_mutex;
 
 static struct timespec
@@ -50,34 +52,35 @@ BOOL daemon_func(void* arg)
 		pthread_mutex_unlock(&daemon_mutex);
 		return FALSE;
 	}
+	mmu_acquire_read(mmu);
 
 	mmu_for_each_mem_page(mmu, age_page);
 
+	mmu_release_read(mmu);
+
 	should_update = FALSE;
+	done_updating = TRUE;
+	pthread_cond_broadcast(&done_updating_condvar);
 
 	pthread_mutex_unlock(&daemon_mutex);
 
 	return FALSE;
 }
 
-static BOOL aging_daemon_should_update()
-{
-	BOOL ret;
-	pthread_mutex_lock(&daemon_mutex);
-	ret = should_update;
-	pthread_mutex_unlock(&daemon_mutex);
-	return ret;
-}
 
 errcode_t aging_daemon_update_pages()
 {
 	assert(worker_thread_is_running(&daemon_thread));
 	pthread_mutex_lock(&daemon_mutex);
+	done_updating = FALSE;
 	should_update = TRUE;
 	pthread_cond_broadcast(&should_update_condvar);
+
+	while (!done_updating){
+		struct timespec waittime = abs_time_from_delta(1);
+		pthread_cond_timedwait(&done_updating_condvar, &daemon_mutex, &waittime);
+	}
 	pthread_mutex_unlock(&daemon_mutex);
-	while (aging_daemon_should_update())
-		;
 	return ecSuccess;
 }
 
@@ -93,6 +96,7 @@ errcode_t aging_daemon_start(mmu_t* mmu)
 
 	pthread_mutex_init(&daemon_mutex, NULL);
 	pthread_cond_init(&should_update_condvar, NULL);
+	pthread_cond_init(&done_updating_condvar, NULL);
 
 	should_update = FALSE;
 
@@ -109,5 +113,6 @@ void aging_daemon_stop()
 {
 	worker_thread_stop(&daemon_thread);
 	pthread_cond_destroy(&should_update_condvar);
+	pthread_cond_destroy(&done_updating_condvar);
 	pthread_mutex_destroy(&daemon_mutex);
 }

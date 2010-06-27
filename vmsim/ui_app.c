@@ -16,7 +16,7 @@ static BOOL command_handler(ui_cmd_t* cmd, app_data_t* app_data)
 {
 	BOOL to_return = TRUE;
 	BOOL async_wait = TRUE;
-	BOOL ret_cmd;
+	BOOL ret_cmd = FALSE;
 
 	if (!strcmp("exit", cmd -> command))
 	{
@@ -514,7 +514,7 @@ BOOL do_loop_write(ui_cmd_t* cmd, app_data_t* app_data)
 	BOOL to_return = FALSE;
 
 	unsigned params[4];
-	char* s;
+	char* s = NULL;
 
 	int err = 1;
 	errcode_t errcode;
