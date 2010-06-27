@@ -715,7 +715,6 @@ void add_mmu_tests()
 	ADD_TEST(test_mmu_aging_2pages_rw);
 	ADD_TEST(test_mmu_alloc_free_stress);
 	ADD_TEST(test_mmu_alloc_free_pagefault_stress);
-	ADD_TEST(test_mmu_alloc_free_pagefault_hatlock_stress);
 	ADD_TEST(test_mmu_alloc_free_pagefault_aging_stress);
 	ADD_TEST(test_mmu_alloc_free_pagefault_aging_stats_stress);
 	ADD_TEST(test_mmu_submission_test1);
