@@ -3,7 +3,7 @@
 OUTDIR := obj
 
 LDFLAGS := ${LDFLAGS} -pthread
-CFLAGS := ${CFLAGS} -O0 -g3 -Wall -Wextra -pthread -Wno-unused-parameter -Wno-int-to-pointer-cast -Wno-pointer-to-int-cast
+CFLAGS := -O2 -g3 -Wall -Wextra -pthread -Wno-unused-parameter -Wno-int-to-pointer-cast -Wno-pointer-to-int-cast ${CFLAGS}
 
 INCLUDE := .
 
