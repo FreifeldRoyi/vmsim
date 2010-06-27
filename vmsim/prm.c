@@ -148,6 +148,7 @@ static BOOL prm_thread_func(void* arg)
 
 	addr = cmd->addr;
 
+	mmu_acquire_write(mmu);
 	DEBUG2("swap in (%d:%d)\n", VIRT_ADDR_PID(addr), VIRT_ADDR_PAGE(addr));
 
 	errcode = mmu_map_page(mmu, addr); //the vaddr to swap in is already locked
@@ -171,6 +172,8 @@ static BOOL prm_thread_func(void* arg)
 
 	mmu_sync_from_backing_page(mmu, addr);
 	DEBUG("Released MMU\n");
+
+	mmu_release_write(mmu);
 
 	pthread_mutex_lock(&prm_mutex);
 	cmd->done = TRUE;

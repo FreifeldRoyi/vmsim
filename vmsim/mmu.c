@@ -33,6 +33,9 @@ errcode_t mmu_init(mmu_t* mmu, mm_t* mem, disk_t* disk, int aging_freq)
 		return errcode;
 	}
 
+	errcode = rwlock_init(&mmu->lock);
+	errcode = rwlock_init(&mmu->stats_lock);
+
 	mmu->mem = mem;
 	mmu->disk = disk;
 	mmu->aging_freq = aging_freq;
@@ -40,6 +43,26 @@ errcode_t mmu_init(mmu_t* mmu, mm_t* mem, disk_t* disk, int aging_freq)
 	memset(&mmu->stats, 0, sizeof(mmu->stats));
 
 	return ecSuccess;
+}
+
+void mmu_acquire_read(mmu_t* mmu)
+{
+	rwlock_acquire_read(&mmu->lock);
+}
+
+void mmu_acquire_write(mmu_t* mmu)
+{
+	rwlock_acquire_write(&mmu->lock);
+}
+
+void mmu_release_read(mmu_t* mmu)
+{
+	rwlock_release_read(&mmu->lock);
+}
+
+void mmu_release_write(mmu_t* mmu)
+{
+	rwlock_release_write(&mmu->lock);
 }
 
 errcode_t mmu_map_page(mmu_t* mmu, virt_addr_t addr)
@@ -55,6 +78,7 @@ errcode_t mmu_map_page(mmu_t* mmu, virt_addr_t addr)
 static errcode_t mmu_alloc_page(mmu_t* mmu, virt_addr_t addr, int backing_page)
 {
 	errcode_t errcode;
+	mmu_acquire_write(mmu);
 
 	DEBUG2("Allocating (%d:%d)\n", VIRT_ADDR_PID(addr), VIRT_ADDR_PAGE(addr));
 
@@ -67,17 +91,22 @@ static errcode_t mmu_alloc_page(mmu_t* mmu, virt_addr_t addr, int backing_page)
 	DEBUG2("Added disk mapping: (%d:%d)\n", VIRT_ADDR_PID(addr), VIRT_ADDR_PAGE(addr));
 	assert(errcode == ecSuccess);
 
+	mmu_release_write(mmu);
+
 	return errcode;
 }
 
 static errcode_t mmu_free_page(mmu_t* mmu, virt_addr_t page)
 {
+	mmu_acquire_write(mmu);
 	DEBUG2("Freeing (%d:%d)\n", VIRT_ADDR_PID(page), VIRT_ADDR_PAGE(page));
 
 	assert(map_get(&mmu->disk_map, &page, NULL)!=ecNotFound);
 
 	mmu_unmap_page(mmu, page);//we don't check the return value because it's OK if the page isn't in memory.
 	map_remove(&mmu->disk_map, &page);
+
+	mmu_release_write(mmu);
 
 	return ecSuccess;
 }
@@ -144,6 +173,7 @@ errcode_t mmu_unmap_page(mmu_t* mmu, virt_addr_t page)
 
 static errcode_t mmu_pin_page(	mmu_t* mmu, virt_addr_t page)
 {
+	errcode_t errcode = ecSuccess;
 	/*NOTE: the INFO printouts here are required by the assignment.
 	 * */
 	if (ipt_has_translation(&mmu->mem_ipt, page))
@@ -153,7 +183,6 @@ static errcode_t mmu_pin_page(	mmu_t* mmu, virt_addr_t page)
 		++mmu->stats.hits;
 		++mmu->stats.nrefs;
 		rwlock_release_write(&mmu->stats_lock);
-		return ecSuccess;
 	}
 	else
 	{
@@ -161,8 +190,15 @@ static errcode_t mmu_pin_page(	mmu_t* mmu, virt_addr_t page)
 		rwlock_acquire_write(&mmu->stats_lock);
 		++mmu->stats.nrefs;
 		rwlock_release_write(&mmu->stats_lock);
-		return prm_pagefault(page);
+
+		do{
+			mmu_release_read(mmu);
+			errcode = prm_pagefault(page);
+			mmu_acquire_read(mmu);
+		}while ((errcode == ecSuccess) &&
+				(!ipt_has_translation(&mmu->mem_ipt, page)));
 	}
+	return errcode;
 }
 
 static errcode_t mmu_unpin_page(	mmu_t* mmu,
@@ -198,6 +234,8 @@ errcode_t mmu_read(	mmu_t* mmu,
 	int offset = addr.offset;
 	assert(offset + (int)nbytes <= MM_PAGE_SIZE(mmu->mem));
 
+	mmu_acquire_read(mmu);
+
 	errcode = mmu_pin_page(mmu, addr);
 	assert (errcode == ecSuccess);
 
@@ -211,6 +249,8 @@ errcode_t mmu_read(	mmu_t* mmu,
 	memcpy(buf, MM_DATA(mmu->mem) + mem_addr, nbytes);
 
 	errcode = mmu_unpin_page(mmu, addr);
+
+	mmu_release_read(mmu);
 
 	mmu_age_pages_if_needed(mmu);
 
@@ -228,6 +268,8 @@ errcode_t mmu_write(mmu_t* mmu,
 	unsigned offset = addr.offset;
 	assert(offset + nbytes <= (unsigned)MM_PAGE_SIZE(mmu->mem));
 
+	mmu_acquire_read(mmu);
+
 	errcode = mmu_pin_page(mmu, addr);
 	assert (errcode == ecSuccess);
 
@@ -241,6 +283,8 @@ errcode_t mmu_write(mmu_t* mmu,
 	memcpy(MM_DATA(mmu->mem) + mem_addr, buf, nbytes);
 
 	errcode = mmu_unpin_page(mmu, addr);
+
+	mmu_release_read(mmu);
 
 	mmu_age_pages_if_needed(mmu);
 
@@ -329,6 +373,8 @@ void mmu_destroy(mmu_t* mmu)
 {
 	ipt_destroy(&mmu->mem_ipt);
 	map_destroy(&mmu->disk_map);
+	rwlock_destroy(&mmu->lock);
+	rwlock_destroy(&mmu->stats_lock);
 }
 
 #include "tests/mmu_tests.c"

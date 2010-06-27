@@ -29,6 +29,7 @@ typedef struct
 	mmu_stats_t stats;
 	rwlock_t stats_lock;
 
+	rwlock_t lock;
 }mmu_t;
 
 /**Initialize an MMU
@@ -41,6 +42,12 @@ typedef struct
  * @return ecSuccess on success, some other code on failure.
  * */
 errcode_t mmu_init(mmu_t* mmu, mm_t* mem, disk_t* disk, int aging_freq);
+
+void mmu_acquire_read(mmu_t* mmu);
+void mmu_acquire_write(mmu_t* mmu);
+void mmu_release_read(mmu_t* mmu);
+void mmu_release_write(mmu_t* mmu);
+
 
 /**Allocate mapping for multiple sequential vaddrs.
  * @param mmu the MMU to use
