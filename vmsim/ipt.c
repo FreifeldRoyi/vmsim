@@ -22,28 +22,6 @@ static int ipt_hat_idx_of(ipt_t* ipt, virt_addr_t addr)
 	return ipt->hat[ipt_hash(ipt, addr)].ipt_idx;
 }
 
-void ipt_lock_vaddr(ipt_t* ipt, virt_addr_t addr)
-{
-	rwlock_acquire_read(&ipt->hat_lock);
-	pthread_mutex_lock(&ipt->hat[ipt_hash(ipt, addr)].lock);
-}
-
-void ipt_unlock_vaddr(ipt_t* ipt, virt_addr_t addr)
-{
-	pthread_mutex_unlock(&ipt->hat[ipt_hash(ipt, addr)].lock);
-	rwlock_release_read(&ipt->hat_lock);
-}
-
-void ipt_lock_all_vaddr(ipt_t* ipt)
-{
-	rwlock_acquire_write(&ipt->hat_lock);
-}
-
-void ipt_unlock_all_vaddr(ipt_t* ipt)
-{
-	rwlock_release_write(&ipt->hat_lock);
-}
-
 static void ipt_set_hat(ipt_t* ipt, virt_addr_t addr, int idx)
 {
 	ipt->hat[ipt_hash(ipt, addr)].ipt_idx = idx;
@@ -108,17 +86,11 @@ errcode_t ipt_init(ipt_t* ipt, int size)
 		return ecFail;
 	}
 
-	if (rwlock_init(&ipt->hat_lock) != ecSuccess)
-	{
-		return ecFail;
-	}
-
 	for (i=0; i<size; ++i)
 	{
 		ipt->entries[i].next =
 			ipt->entries[i].prev = IPT_INVALID;
 		ipt->hat[i].ipt_idx = IPT_INVALID;
-		pthread_mutex_init(&ipt->hat[i].lock, NULL);
 		queue_push(ipt->free_pages, (void*)i);
 	}
 
@@ -326,17 +298,10 @@ errcode_t ipt_zero_ref_count(ipt_t* ipt)
 
 void ipt_destroy(ipt_t* ipt)
 {
-	int i;
 	DEBUG1("Destroying IPT %p\n", ipt->entries);
 	free(ipt->entries);
 	ipt->entries = NULL;
 
-	for (i=0; i < ipt->size; ++i)
-	{
-		pthread_mutex_destroy(&ipt->hat[i].lock);
-	}
-
-	rwlock_destroy(&ipt->hat_lock);
 	rwlock_destroy(&ipt->refcnt_lock);
 	while (queue_size(ipt->free_pages) > 0)
 	{

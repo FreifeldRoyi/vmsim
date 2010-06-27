@@ -296,46 +296,6 @@ cunit_err_t test_mmu_alloc_free_pagefault_stress()
 	return err;
 }
 
-BOOL hat_locking_func(void* arg)
-{
-	mmu_t* mmu = arg;
-	struct timespec ts;
-	ts.tv_sec = 0;
-	ts.tv_nsec = 500000;
-
-	rwlock_acquire_write(&mmu->mem_ipt.hat_lock);
-	nanosleep(&ts,NULL);
-	rwlock_release_write(&mmu->mem_ipt.hat_lock);
-
-	return FALSE;
-}
-
-cunit_err_t test_mmu_alloc_free_pagefault_hatlock_stress()
-{
-	mmu_t mmu;
-	mm_t mem;
-	disk_t disk;
-	worker_thread_t hat_locking_thread;
-	cunit_err_t err;
-
-	ASSERT_EQUALS(ecSuccess, mm_init(&mem, MEM_NPAGES, PAGESIZE));
-	ASSERT_EQUALS(ecSuccess, disk_init(&disk,DISK_NPAGES, PAGESIZE, DISK_BLOCKSIZE));
-	ASSERT_EQUALS(ecSuccess, mmu_init(&mmu, &mem, &disk, NEVER_AGE));
-
-	ASSERT_EQUALS(ecSuccess, worker_thread_create(&hat_locking_thread, &hat_locking_func));
-	ASSERT_EQUALS(ecSuccess, worker_thread_start(&hat_locking_thread, &mmu));
-
-	err = do_test_mmu_alloc_free_stress(&mmu, DISK_BLOCKSIZE);
-
-	ASSERT_EQUALS(ecSuccess, worker_thread_stop(&hat_locking_thread));
-
-	mmu_destroy(&mmu);
-	disk_destroy(&disk);
-	mm_destroy(&mem);
-
-	return err;
-}
-
 cunit_err_t test_mmu_read_write_sanity()
 {
 	mmu_t mmu;
