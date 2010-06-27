@@ -71,9 +71,9 @@ errcode_t worker_thread_start_impl(worker_thread_t* thread, void* arg, const cha
 
 errcode_t worker_thread_stop(worker_thread_t* thread)
 {
-	WRITE_START(thread);
+//	WRITE_START(thread);
 	thread->stop = TRUE;
-	WRITE_END(thread);
+//	WRITE_END(thread);
 
 	while (worker_thread_is_running(thread))
 		;//wait
@@ -84,9 +84,9 @@ errcode_t worker_thread_stop(worker_thread_t* thread)
 BOOL worker_thread_is_running(worker_thread_t* thread)
 {
 	BOOL running;
-	READ_START(thread);
+//	READ_START(thread);
 	running = thread->running;
-	READ_END(thread);
+//	READ_END(thread);
 	return running;
 }
 
