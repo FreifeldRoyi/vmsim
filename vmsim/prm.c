@@ -150,7 +150,6 @@ static BOOL prm_thread_func(void* arg)
 
 	DEBUG2("swap in (%d:%d)\n", VIRT_ADDR_PID(addr), VIRT_ADDR_PAGE(addr));
 
-	mmu_block_alloc_free(mmu);
 	errcode = mmu_map_page(mmu, addr); //the vaddr to swap in is already locked
 	while (errcode != ecSuccess) //no free pages in memory, swap a page out.
 	{
@@ -171,7 +170,6 @@ static BOOL prm_thread_func(void* arg)
 	}
 
 	mmu_sync_from_backing_page(mmu, addr);
-	mmu_release_alloc_free(mmu);
 	DEBUG("Released MMU\n");
 
 	pthread_mutex_lock(&prm_mutex);

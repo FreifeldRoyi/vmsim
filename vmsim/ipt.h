@@ -32,16 +32,11 @@ typedef struct _ipt_entry_t{
 typedef struct {
 
 	int ipt_idx;
-
-	pthread_mutex_t lock;
-
 }hat_entry_t;
 
 typedef struct{
 	ipt_entry_t* entries;
-
 	hat_entry_t* hat;
-	rwlock_t hat_lock;
 
 	int size;
 
@@ -78,36 +73,6 @@ BOOL ipt_has_translation(ipt_t* ipt, virt_addr_t addr);
  * @return TRUE if the addr is 'dirty', FALSE otherwise.
  * */
 BOOL ipt_is_dirty(ipt_t* ipt, virt_addr_t addr);
-
-/**Lock a vaddr. Only one thread may lock a given vaddr at a given point in time.
- * NOTE: This function may actually lock more then a single vaddr, and the number
- * and (possibly) other addresses that will be locked is implementation-dependent.
- *
- * @param ipt the IPT to use
- * @param addr the vaddr to lock
- *
- * */
-void ipt_lock_vaddr(ipt_t* ipt, virt_addr_t addr);
-
-/** Unlock a vaddr. Any other vaddrs that were locked along with it will be unlocked
- * as well.
- *
- * @param ipt the IPT to use
- * @param addr the vaddr to unlock
- *
- * */
-void ipt_unlock_vaddr(ipt_t* ipt, virt_addr_t addr);
-
-/**Prevent any modification to this IPT. Any ongoing modifications are allowed to
- * finish.
- * @param ipt the IPT to lock
- * */
-void ipt_lock_all_vaddr(ipt_t* ipt);
-
-/**Allow modification to this IPT.
- * @param ipt the IPT to unlock
- * */
-void ipt_unlock_all_vaddr(ipt_t* ipt);
 
 /**Mark a page as referenced for read/write
  * @param ipt the IPT to use

@@ -51,11 +51,7 @@ BOOL daemon_func(void* arg)
 		return FALSE;
 	}
 
-	ipt_lock_all_vaddr(&mmu->mem_ipt);
-
 	mmu_for_each_mem_page(mmu, age_page);
-
-	ipt_unlock_all_vaddr(&mmu->mem_ipt);
 
 	should_update = FALSE;
 

@@ -26,8 +26,6 @@ typedef struct
 
 	unsigned aging_freq;
 
-	pthread_mutex_t diskmap_lock;
-
 	mmu_stats_t stats;
 	rwlock_t stats_lock;
 
@@ -135,16 +133,6 @@ errcode_t mmu_sync_to_backing_page(mmu_t* mmu, virt_addr_t page);
  * @return ecSuccess on success, some other code on failure.
  * */
 errcode_t mmu_sync_from_backing_page(mmu_t* mmu, virt_addr_t page);
-
-/**Disallow allocation/freeing of pages
- * @param mmu the MMU to lock
- * */
-void mmu_block_alloc_free(mmu_t* mmu);
-
-/**Allow allocation/freeing of pages
- * @param mmu the MMU to unlock
- * */
-void mmu_release_alloc_free(mmu_t* mmu);
 
 /**Return a copy of the MMU statistics at a given point in time.
  * @param mmu the MMU to use

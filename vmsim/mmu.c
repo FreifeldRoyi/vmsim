@@ -33,14 +33,11 @@ errcode_t mmu_init(mmu_t* mmu, mm_t* mem, disk_t* disk, int aging_freq)
 		return errcode;
 	}
 
-	pthread_mutex_init(&mmu->diskmap_lock, NULL);
-
 	mmu->mem = mem;
 	mmu->disk = disk;
 	mmu->aging_freq = aging_freq;
 
 	memset(&mmu->stats, 0, sizeof(mmu->stats));
-	rwlock_init(&mmu->stats_lock);
 
 	return ecSuccess;
 }
@@ -59,9 +56,6 @@ static errcode_t mmu_alloc_page(mmu_t* mmu, virt_addr_t addr, int backing_page)
 {
 	errcode_t errcode;
 
-	ipt_lock_vaddr(&mmu->mem_ipt, addr);
-	mmu_block_alloc_free(mmu);
-
 	DEBUG2("Allocating (%d:%d)\n", VIRT_ADDR_PID(addr), VIRT_ADDR_PAGE(addr));
 
 	errcode = mmu_map_page(mmu, addr);
@@ -73,8 +67,6 @@ static errcode_t mmu_alloc_page(mmu_t* mmu, virt_addr_t addr, int backing_page)
 	DEBUG2("Added disk mapping: (%d:%d)\n", VIRT_ADDR_PID(addr), VIRT_ADDR_PAGE(addr));
 	assert(errcode == ecSuccess);
 
-	mmu_release_alloc_free(mmu);
-	ipt_unlock_vaddr(&mmu->mem_ipt, addr);
 	return errcode;
 }
 
@@ -82,16 +74,10 @@ static errcode_t mmu_free_page(mmu_t* mmu, virt_addr_t page)
 {
 	DEBUG2("Freeing (%d:%d)\n", VIRT_ADDR_PID(page), VIRT_ADDR_PAGE(page));
 
-	ipt_lock_vaddr(&mmu->mem_ipt, page);
-	mmu_block_alloc_free(mmu);
-
 	assert(map_get(&mmu->disk_map, &page, NULL)!=ecNotFound);
 
 	mmu_unmap_page(mmu, page);//we don't check the return value because it's OK if the page isn't in memory.
 	map_remove(&mmu->disk_map, &page);
-
-	mmu_release_alloc_free(mmu);
-	ipt_unlock_vaddr(&mmu->mem_ipt, page);
 
 	return ecSuccess;
 }
@@ -160,7 +146,6 @@ static errcode_t mmu_pin_page(	mmu_t* mmu, virt_addr_t page)
 {
 	/*NOTE: the INFO printouts here are required by the assignment.
 	 * */
-	ipt_lock_vaddr(&mmu->mem_ipt, page);
 	if (ipt_has_translation(&mmu->mem_ipt, page))
 	{
 		INFO2("IPT has a mapping for (%d:%d)\n", VIRT_ADDR_PID(page), VIRT_ADDR_PAGE(page));
@@ -183,7 +168,6 @@ static errcode_t mmu_pin_page(	mmu_t* mmu, virt_addr_t page)
 static errcode_t mmu_unpin_page(	mmu_t* mmu,
 						virt_addr_t page)
 {
-	ipt_unlock_vaddr(&mmu->mem_ipt, page);
 	return ecSuccess;
 }
 
@@ -332,17 +316,6 @@ errcode_t mmu_for_each_mem_page(mmu_t* mmu, void (*func)(phys_addr_t, page_data_
 	return ipt_for_each_entry(&mmu->mem_ipt, func);
 }
 
-
-void mmu_block_alloc_free(mmu_t* mmu)
-{
-	MMU_ACQUIRE_DISKMAP(mmu);
-}
-
-void mmu_release_alloc_free(mmu_t* mmu)
-{
-	MMU_RELEASE_DISKMAP(mmu);
-}
-
 mmu_stats_t mmu_get_stats(mmu_t* mmu)
 {
 	mmu_stats_t ret;
@@ -354,12 +327,8 @@ mmu_stats_t mmu_get_stats(mmu_t* mmu)
 
 void mmu_destroy(mmu_t* mmu)
 {
-	mmu_block_alloc_free(mmu);
 	ipt_destroy(&mmu->mem_ipt);
 	map_destroy(&mmu->disk_map);
-	mmu_release_alloc_free(mmu);
-
-	pthread_mutex_destroy(&mmu->diskmap_lock);
 }
 
 #include "tests/mmu_tests.c"

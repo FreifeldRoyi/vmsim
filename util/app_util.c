@@ -178,7 +178,6 @@ void print_registers(ipt_t* ipt)
 {
 	unsigned i;
 	unsigned mm_size = ipt->size;
-	ipt_lock_all_vaddr(ipt);
 
 	for (i = 0; i < mm_size; ++i)
 	{
@@ -187,14 +186,12 @@ void print_registers(ipt_t* ipt)
 		printf("0x%x\n", ipt->entries[i].page_data.page_age);
 	}
 
-	ipt_unlock_all_vaddr(ipt);
 }
 
 void print_HAT(ipt_t* ipt)
 {
 	int i;
 
-	ipt_lock_all_vaddr(ipt);
 
 	printf("\nHAT Dump:\n--------\n\nidx|ipt_idx\n--- -------\n");
 	for (i=0; i<ipt->size; ++i)
@@ -202,7 +199,6 @@ void print_HAT(ipt_t* ipt)
 		printf("%3d|%d\n", i, ipt->hat[i].ipt_idx);
 	}
 
-	ipt_unlock_all_vaddr(ipt);
 }
 
 void monitor_on()
