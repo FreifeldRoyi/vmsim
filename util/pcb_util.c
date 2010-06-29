@@ -283,7 +283,7 @@ errcode_t sim_read(proc_cont_t* proc_cont, virt_addr_t* vAddr, int off,int amoun
 
 		for (i = 0; i < multiplier; ++i)
 		{
-			fprintf(f, "Char %d: %c\n", i, buf[i]);
+			fprintf(f, "%c\n", buf[i]);
 		}
 
 		if (file_name != NULL)
